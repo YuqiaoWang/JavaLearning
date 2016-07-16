@@ -1,15 +1,20 @@
-package main.java;
-
+import java.io.Serializable;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
-
 /**
- * Created by yuqia on 2016/7/13.
+ * Created by yuqia on 2016/7/16.
  */
+public class SerializableClass {
+    public static void main(String[] args) {
+        new MyServer().start();
+        new MyClient().start();
+    }
+
+}
+
 class Student implements Serializable {
     private int sno;
     private String sname;
@@ -35,21 +40,9 @@ class Student implements Serializable {
         return "学号：" + sno + "姓名：" + sname;
     }
 }
-//(Object)反序列化过程
-class MyClient extends Thread {
-    public void run() {
-        try {
-            Socket s= new Socket("localhost",9999);
-            ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
-            Student stu = (Student) ois.readObject();
-            System.out.println("客户端程序收到服务器程序传输过来的学生对象>>"+stu);
-        }catch (IOException e) {
-            e.printStackTrace();
-        }catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-}
+
+
+
 //(object)的序列化过程
 class MyServer extends Thread {
     @Override
@@ -70,10 +63,18 @@ class MyServer extends Thread {
 
 }
 
-class TestTransfer {
-    public static void main(String[] args) {
-        new MyServer().start();
-        new MyClient().start();
+//(Object)反序列化过程
+class MyClient extends Thread {
+    public void run() {
+        try {
+            Socket s= new Socket("localhost",9999);
+            ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
+            Student stu = (Student) ois.readObject();
+            System.out.println("客户端程序收到服务器程序传输过来的学生对象>>"+stu);
+        }catch (IOException e) {
+            e.printStackTrace();
+        }catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
-
 }

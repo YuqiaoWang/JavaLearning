@@ -1,16 +1,18 @@
 /**
- * Created by yuqia on 2016/7/14.
+ * Created by yuqia on 2016/7/16.
  */
 import java.util.Iterator;
-
-public class ForEachAPIDemo {
+public class IterableClass {
     public static void main(String[] args) throws Exception {
         Students students = new Students(10);
         for (Student student : students) {
             System.out.println(student.getSid() + ":" + student.getName());
         }
     }
+
 }
+
+
 
 // 支持for each迭代循环的学生集合类
 class Students implements Iterable<Student> {
@@ -25,7 +27,6 @@ class Students implements Iterable<Student> {
         }
     }
 
-    @Override
     public Iterator<Student> iterator() {
         return new StudentIterator();
     }
@@ -40,7 +41,6 @@ class Students implements Iterable<Student> {
             return index != students.length;
         }
 
-        @Override
         public Student next() {
             return students[index++];
         }

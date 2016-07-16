@@ -1,12 +1,10 @@
-package main.java;
-
+/**
+ * Created by yuqia on 2016/7/16.
+ */
 import java.util.Arrays;
 import java.util.Random;
 
-/**
- * Created by yuqia on 2016/7/11.
- */
-public class EmployeeSortTest {
+public class ComparableClass {
     public static void main(String[] args) {
         Employee[] staff = new Employee[3];
         staff[0] = new Employee("Harry Hacker",35000);
@@ -18,14 +16,12 @@ public class EmployeeSortTest {
             System.out.println("id="+e.getId()+" name："+e.getName()+
                     " salary="+e.getSalary());
     }
-
 }
 
 /*
 * 因为要实现对Employee对象的排序，所以在Employee类中要实现Comparable接口，
 * 也就是要实现comepareTo()方法
 */
-
 
 class Employee implements Comparable<Employee>{
     private int id;
