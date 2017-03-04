@@ -154,7 +154,7 @@ Java 里不能使用方法返回值类型作为区分方法重载的依据<br>
 ### 成员变量和局部变量
 <table>
     <tr>
-        <th rowspan = 7>所有变量</th>
+        <th rowspan = 6>所有变量</th>
         <th rowspan = 2>成员变量</th>
         <th>实例 Field（不以 static 修饰）</th>
     </tr>
@@ -278,3 +278,85 @@ instanceof 作用：在进行强制类型转换之前，先判断前一个对象
 初始化块只在创建 Java 对象时隐式执行，而且在执行构造器之前执行<br>
 初始化块是构造器的补充<br>
 使用 static 修饰的初始化块是类初始化块
+
+### 包装类
+基本数据类型 -> 包装类<br>
+
+![](pic6_1.png)
+8个包装类除了 Character 外，可通过传入一个字符串参数来构建包装类对象
+<pre><code>
+Float fl = new Float("4.56");
+</code></pre>
+
+如果希望获得包装类对象中包装的基本类型变量，则可以使用包装类提供的 xxxValue()实例方法<br>
+![](pic6_2.png)
+
+### 处理对象
+
+toString() 方法是 Object 类里的一个实例方法，所有 Java 对象都可以和字符串进行连接计算<br>
+toString() 方法返回该对象实现类的 "类名 + @ + hashCode"<br>
+
+- == 如果两个变量是基本类型，只要值相等，就返回 true
+- == 如果两个引用类型变量，它们必须指向同一对象，才返回 true
+- equals 是 Object 类提供的实例方法，与 == 没有区别
+- String 重写了 equals() 方法：只要两个字符串包含字符序列相同，通过 equals() 比较将返回 true
+
+正确重写 equals 方法应满足：
+- 自反性：对任意 x, x.equals(x)一定返回 true
+- 对称性：对任意 x 和 y, 如果 y.equals(x) 返回 true, 则 x.equals(y) 也返回 true
+- 传递性：对任意x,y,z, 如果 x.equals(y) 返回ture, y.equals(z) 返回 true, 则 x.equals(z) 一定返回 true
+- 一致性：对任意 x 和 y, 如果对象中用于等价比较的信息没有改变，那么返回结果保持一致
+
+### 类成员
+单例类： 一个类时钟只能创建一个实例<br>
+- 把该类构造器使用 private 修饰<br>
+- 一旦隐藏构造器，就需要提供一个 public 方法作为该类的访问点，用于创建类的对象，且该方法必须是 static 修饰<br>
+- 该类还必须缓存已创建的对象
+
+<pre><code>
+class Singleton {
+    private static Singleton instance;
+    private Singleton() {
+
+    }
+    public static Singleton getInstance() {
+        if(instance == null) {
+            instance = new Singleton();
+        }
+        return instance;
+    }
+}
+</code></pre>
+
+### final 修饰符
+
+final 关键字修饰的类、方法和变量不可改变<br>
+final Field
+- 类 Field：必须在镜头初始化过程中或声明该 Field 时指定初始值
+- 实例 Field：必须在非静态初始化块、声明该 Field 或构造器中指定初始值
+- final 成员变量必须显式初始化
+- final 修饰局部变量可在定义时不指定默认值
+- 使用 final 修饰引用类型变量不能被重新赋值，但可以改变引用类型变量所引用对象的内容
+
+final 方法：
+- 不可被重写，如果不希望子类重写父类方法，则可用 final
+- Object 类中的 getClass() 方法就是 final 方法
+
+final 类：
+- 不能有子类
+
+不可变类：创建实例后，实例的 Field 关键字修饰的类、方法和变量不可改变<br>
+<pre><code>
+Double d = new Double(6.5);
+</code></pre>
+
+创建不可变类的规则：
+- 使用 private 和 final 修饰符来修饰该类的 Field
+- 提供带参数构造器，用于根据传入参数来初始化类里的 Field
+- 仅为该类的 Field 提供 getter 方法，不提供 setter方法
+- 若有必要，重写 Object 类的 hashCode 和 equals 方法
+
+
+
+
+
