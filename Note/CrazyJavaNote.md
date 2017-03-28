@@ -485,6 +485,272 @@ public class TeachableProgrammer extends Programmer {
 }
 </code></pre>
 
+### 枚举类
+枚举类： 实例有限而且固定的类<br>
+enum 关键字定义枚举类
+
+- 一个 Java 源文件最多只能定义一个 public 的枚举类
+- enum 定义的枚举类继承 java.lang.Enum，而非 Object
+- 枚举类构造器只能使用 private 修饰符
+- 枚举类所有实例必须在枚举类第一行显示列出
+- 枚举类也可以定义 Field、方法
+- 一旦枚举类显示定义了构造器，列出枚举值就必须传入参数
+- 枚举类实现接口，可以让每个枚举类分别来实现方法，提供不同的实现方式
+- 当创建枚举值时，实际上创建了枚举类的匿名子类实例
+
+<pre><code>
+public enum SeasonEnum {
+    SPRING,SUMMER,FALL,WINTER;
+}
+</code></pre>
+
+java.lang.Enum 包含的方法
+- int compareTo(E o): 指定枚举对象比较顺序，若该枚举对象位于指定枚举对象之后，返回正整数；在之前返回负整数；否则返回零
+- int ordinal(): 返回枚举值在枚举类中的索引值（在枚举声明中的位置）
+- String toString(): 返回枚举常量名称
+
+### 对象与垃圾回收
+- 只负责回收堆内存中的对象，不会回收任何物理资源
+- 程序无法精确控制垃圾回收运行
+
+#### 对象在内存中的状态
+- 可达状态：对象被创建后，有一个以上引用
+- 可恢复状态：某个对象不再有任何引用变量引用它
+- 不可达状态：对象与所有引用变量的关联被切断，且系统调用finalize()方法后依然没有使该对象变成可达状态
+
+#### 强制垃圾回收
+- System.gc()
+- Runtime.getRuntime().gc()
+只是通知系统进行垃圾回收，但系统是否进行垃圾回收依然不确定
+
+#### finalize()方法4个特点：
+- 永远不要主动调用
+- 该方法何时被调用，是否被调用具有不确定性
+- JVM 执行客恢复对象的finalize()方法时，可能使其重变成可达
+- 不会报告异常
+
+#### 对象的强、软、弱、虚引用
+1. 强引用：最常见，通过引用变量来操作实际对象，处于可达时不被回收
+2. 软引用：通过SoftReference实现，当对象只有软引用时有可能被强制回收；当内存空间足够，不会被回收，空间不足时系统可能回收它
+3. 弱引用：和软引用很像，但垃圾回收机制运行时，总会被回收
+4. 虚引用：完全类似于没有引用，用于跟踪对象被垃圾回收的状态，必须和引用队列(ReferenceQueue)联合使用
+
+### JAR 包
+全称 Java Archive File Java 档案文件
+
+
+## 7. 与运行环境交互
+### 7.1 与用户互动
+main 方法由 JVM 调用，args形参由 JVM 赋值<br>
+
+Scanner 类是一个基于正则表达式的文本扫描器，可以从文件、输入流、字符串中解析出基于基本类型值的字符串值
+- hasNextXxx():是否还有下一个输入项，其中Xxx 可以是Int\Long等基本数据类型
+- nxtXxx():获取下一个输入项
+- boolean hasNextLine():返回输入源中是否还有下一行
+- String nextLine():返回输入源中下一行的字符串
+- 创建Scanner 对象时传入一个File对象作为参数，就可以让Scanner读取该文件内容
+<pre><code>
+Scanner sc = new Scanner(new File("ScannerFileTest.java"));
+while(sc.hasNextLine()) {
+    System.out.println(sc.nextLine());
+}
+</code></pre>
+
+### 7.2 系统相关
+#### System 类
+- 程序不能创建System 类对象
+- 提供标准输入输出和错误输出的类 Field, 并提供静态方法访问环境变量、系统属性
+- 提供 identityHashCode(Object x) 方法，返回指定对象的精确 hashCode 值（根据对象的地址计算得到）
+
+#### Runtime 类
+- 代表Java 程序的运行时环境，程序不能自己创建 Runtime 实例
+- 可访问 JVM 相关信息
+
+### 7.3 常用类
+#### Object 类
+- 是所有类的父类，所有类默认继承 Object
+- boolean equals(Obkect obj) 和"=="基本没有区别，存在的意义在于被重写
+- protected void finalize() 垃圾回收调用
+- Class<?> getClass() 返回运行时类
+- int hashCode() 返回对象hashCode值
+- String toString() 返回 “运行时类名@十六进制hashCode值”
+- protected clone()方法,帮助其他对象实现自我克隆，即获得当前对象副本，且二者完全隔离；是一种浅克隆，只克隆该对象的所有Field值，不会对引用类型的Field值所引用对象进行克隆
+
+#### String、StringBuffer
+- String 一旦一个 String 对象被创建以后字符序列不可变
+- StringBuffer 对象代表一个字符序列可变的字符串，通过该类提供的append(),insert(),reverse(),setCharAt(),setLength()等方法可改变这个字符串
+- StringBuilder基本类似于StringBuffer，但 StringBuffer 是线程安全的
+- StringBuffer 和 StringBuilder 有两个属性：length 和 capacity，与 String 对象不同的是，length 可变，capacity 通常比 length 大，且无需关心
+
+因为 String 是不可变的，在执行连接字符串操作时，会额外产生很多临时变量，使用 StringBuffer 或 StringBuilder 就可以避免
+
+#### Math 类
+- 两个静态 Field:PI, E
+- 工具类，无法创建 Math 对象
+
+#### ThreadLocalRandom 与 Random
+- Random 类生成伪随机数，如果这个类的两个实例用同一个种子创建，对它们同样顺序调用，会产生相同数字序列
+- ThreadLocalRandom 类可保证系统更好的线程安全性，提供静态 current() 方法获取 ThreadLocalRandom 对象，之后可调用各种 nextXxx() 方法
+- 为避免产生相同数字序列，通常已当前时间作为 Random 对象的种子
+<pre><code>
+Random rand = new Random(System.currentTimeMills());
+</code></pre>
+
+#### BigDecimal 类
+为了精确表示、计算浮点数<br>
+通常建议有限使用基于 String 的构造器<br>
+若必须使用 double 作为 BigDecimal 构造器参数，应通过 BigDecimal.valueOf(double value) 静态方法来创建 BigDecimal 对象
+
+### 7.4 处理日期的类
+#### Date 类
+不推荐使用
+
+#### Calendar 类
+抽象类，用于表示日历<br>
+GregorianCalendar：公历，Calendar 类的子类
+
+### 7.5 正则表达式
+正则表达式是一个用于匹配字符串的模板<br>
+通配符是可以匹配多个字符的特殊字符<br>
+Pattern 对象是正则表达式编译后在内存中的表示形式，然后利用该 Pattern 对象创建对应的 Matcher对象<br>
+Matcher 类的 find() 和 group()方法可从目标字符串中依次取出特点子串<br>
+
+> String 类的 equals(), startsWith()都与字符串比较，而 Matcher 的 matches() 和 lookingAt() 是与正则表达式匹配
+
+## 8. Java 集合
+### 8.1 集合概述
+所有集合类都位于 java.util 包下<br>
+集合李只能保存对象（引用）而不能保存基本数据类型<br>
+主要由两个接口派生出来：Collection 和 Map<br>
+![](pic8_1.png)
+
+- Set 和 List 接口分别代表了无序集合和有序集合
+- Queue 是 Java 提供的队列实现，有点类似 List
+- 所有的 Map 实现类用于保存具有映射关系的数据
+- Set 里的元素不能重复
+- List可以记住每次添加元素的顺序，长度可变
+- Map 的每项数据都由两个值组成
+
+### 8.2 Collection 和 Iterator 接口
+Collection 接口：List, Set 和 Queue 的父接口<br>
+所有的 Collection 都重写了 toString()方法，可以一次性输出集合中的所有元素<br>
+Iterator 用于遍历 Collection 集合中的元素<br>
+Iterator 进行迭代时，是把集合元素的值传给了迭代变量，修改迭代变量的值对集合元素本身无影响<br>
+foreach 循环迭代集合元素时，该集合也不能被改变
+
+### 8.3 Set 集合
+Set 集合不允许包含相同的元素<br>
+判断两个元素相同是根据 equals 方法<br>
+#### HashSet
+HashSet 按 Hash 算法来存储集合中的元素
+- 不能保证元素排列顺序
+- 不同步，多线程同时修改HashSet时，必须通过代码来保证同步
+- 元素值可以是 null
+- 把一个对象放入 HashSet 中，如需重写 equals() 方法，也要重写 hashCode()方法，其规则是：如果两个对象通过 equals() 方法返回 true，这两个对象的 hashCode 值也应相同
+
+> Hash 算法的功能：保证通过一个对象快速查找到另一个对象，价值在于速度<br>
+> hash 算法可以直接根据元素值计算出该元素的存储位置<br>
+> 与数组不同的是，数组定长且索引连续；hash根据元素 hashcode 值来计算索引
+
+重写 hashCode() 的基本规则：
+- 同一对象多次调用 hashCode()应返回相同值
+- 两对象通过 equals()返回true，则 hashCode()返回相同
+- 对象中用作 equals() 比较标准的 Field，都应计算 hashCode()值
+一般规则
+1. 把对象内每个有意义的 Field计算出一个 int 类型的 hashCode值
+2. 第1步多个 hashCode值组合计算出一个 hashCode 值返回
+
+#### LinkedHashSet 类
+使用链表维护元素的次序，遍历时按元素插入顺序访问<br>
+性能略低于 HashSet<br>
+依然不允许集合元素重复
+
+#### TreeSet 类
+- 是 SortedSet 接口实现类，可确保集合元素处于排序状态
+- 所以增加了访问第一个、前一个、后一个、最后一个元素的方法
+- 根据元素实际值的大小来排序
+- 采用红黑树数据结构来存储集合元素
+- 支持自然排序（默认）和定制排序
+
+1. 自然排序<br>
+TreeSet 调用集合元素的 compareTo(Object obj) 方法比较两元素大小，将集合元素按升序排列<br>
+Java 中的 Comparable 接口提供了一个 compareTo(Object obj)方法，实现该接口的类必须实现此方法<br>
+向 TreeSet 中添加的应该是同一个类的对象，否则引发异常<br>
+TreeSet 判断两元素相等的唯一标准：compareTo方法返回值是否是0<br>
+> 当可变对象的Field被修改时，TreeSet 处理这些对象将非常复杂，且容易出错,推荐 HashSet 和 TreeSet 只放入不可变对象
+
+2. 定制排序<br>
+如需实现定制排序，需要在创建 TreeSet 集合时通过 Comparable 接口帮助
+
+#### EnumSet 类
+- 专为枚举类设计的集合类
+- 所有元素都必须是指定枚举类型的枚举值
+- 元素有序，以枚举值排序
+- 以向量形式存储，内存占用小，运行效率高
+- 不允许加入 null 元素
+- 无可调用的构造器，需通过 static 方法创建 EnumSet 对象
+
+#### 各 Set 性能分析
+- HashSet 性能总比 TreeSet 好
+- 只有当需要保持排序的 Set 时，才使用 TreeSet
+- HashSet 的子类 LinkedHashSet 比 HashSet 略慢，但遍历更快
+- EnumSet 性能最好，但只能保存同一个枚举类的枚举值作为集合元素
+- 线程都是不安全的
+
+### 8.4 List 集合
+List 代表一个元素有序、可重复的集合
+
+#### List 接口 和 ListIterator 接口
+相比于 Set， List 增加了根据索引来插入、替换和删除集合元素的方法<br>
+List 额外提供了一个 liseIterator()方法，返回 ListIterator 对象，提供前向迭代，还可通过add方法向List集合中添加元素<br>
+
+#### ArrayList 和 Vector
+ArrayList 和 Vector 都基于数组实现 List 类，所以 ArrayList 和 Vector 封装了一个动态的、允许再分配的 Object[] 数组<br>
+ArrayList 或 Vector 对象使用 initialCapacity 设置数组长度，当元素超出长度时，initialCapacity 自动增加
+- ArrayList 和 Vector 显著区别： ArrayList 线程不安全，Vector 是线程安全的，Vector性能差
+- Vetor 提供了一个 Stack 子类， 用于模拟“栈”这种数据结构
+
+### 8.5 Queue 集合
+Queue 用于模拟队列，通常队列不允许随机访问<br>
+
+#### PriorityQueue 实现类
+PriorityQueue 是一个比较标准的队列实现类，但是按队列元素大小进行重排，而非按加入顺序<br>
+取出队列元素时先取出最小的元素<br>
+不允许插入 null 元素<br>
+采用自然排序和定制排序<br>
+
+#### Deque 接口与 ArrayDeque 实现类
+Deque 是 Queue 的子接口，代表一个双端队列，允许从两端操作队列元素<br>
+Deque 提供了一个经典实现类： ArrayDeque，基于数组实现，创建对象时可指定一 numElements 参数，用于指定Object[] 数组长度<br>
+
+#### LinkedList 实现类
+LinkedList 可以根据索引来随机访问集合中的元素<br>
+LinkedList 可作为双端队列、栈使用
+
+#### 各种线性表的性能分析
+
+|  | 实现机制 | 随机访问排名 | 迭代操作排名 | 插入操作排名 | 删除操作排名 |
+| ------------- |:-------------:| :-----:| :-----:| :-----:| :-----:|
+| 数组 | 连续内存区保存元素 | 1 | 不支持 | 不支持 | 不支持 |
+| ArrayList/ArrayDeque | 以数组保存元素 | 2 | 2 | 2 | 2 |
+| Vector | 以数组保存元素 | 3 | 3 | 3 | 3 |
+| LinkedList | 以链表保存元素 | 4 | 1 | 1 | 1 |
+
+### 8.6 Map
+- Map 用于保存具有映射关系的数据
+- 一组值保存key，另一组保存 value，都可以是引用变量
+- key 不允许重复
+- key 和 value 间存在单向一对一关系
+- Map 里的所有 key 构成 set 集合
+
+> map 与 set 关系密切，Map 提供一个 Entry 内部类来封装 key-value 对，计算 Entry 存储时只考虑 Entry 封装的 key
+
+#### HashMap 和 Hasgtable 实现类
+- 都是 map 接口的经典实现，关系类比 ArrayList 与 Vector
+- 两点区别：Hashtable 是线程安全的，HashMap 性能高；Hashtable 不允许使用 null 作为 key 和 value，HashMap 可以
+- HashMap 和 Hashtable 均不保证元素顺序
+- 尽量不要在程序中修改 key，或不要使用可变对象作为 key
+
 
 
 
