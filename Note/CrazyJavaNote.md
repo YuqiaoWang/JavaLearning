@@ -751,6 +751,78 @@ LinkedList 可作为双端队列、栈使用
 - HashMap 和 Hashtable 均不保证元素顺序
 - 尽量不要在程序中修改 key，或不要使用可变对象作为 key
 
+#### LinkedHashMap 实现类
+- LinkedHashMap 使用双向链表来维护 key-value 对的次序（其实是key的次序）  
+- 迭代顺序与 key-value 对的插入次序保持一致，性能略低于 HashMap
 
+#### SortedMap 接口和 TreeMap 实现类
+Map 接口派生出一个 SortedMap 接口和一个 TreeMap 实现类
+- TreeMap 是一个**红黑树**数据结构, 每个 key-value 对即作为红黑树的一个节点
+- TreeMap 存储 key-value 对时，需根据 key 对节点进行排序
+- 采用2种排序方式
+  - 自然排序： 所有 key 实现 Comparable 接口，且所有 key 都是同一类的对象，否则抛出 ClassCastexception 异常
+  - 定制排序： 不要求实现 Comparable 接口，创建 TreeMap 时传入一个 Comparator 对象，负责对 TreeMap 中所有 key 进行排序；需要重写 equals() 和 compareTo() 方法
 
+#### WeakHashMap 实现类
+WeakHashMap 与 HashMap 用法相似，区别在于：
+- 只要该 HashMap 对象不被摧毁， HashMap 所有 key 所引用的对象就不会被垃圾回收， HashMap 也不自动删除这些 key 对应的 key-value 对
+- WeakHashMap 的 key 只保留了对实际对象的弱引用，意味着如果 WeakHashMap 对象的 key 所引对象没有被其他强引用变量所引用，则这些 key 所引用的对象可能被垃圾回收， WeakHashMap 也可能自动删除这些 key-value 对
+
+> 如果需要使用 WeakHashMap 的 key 来保留对象的弱引用，则不要让该 key 所引用的对象具有任何强引用
+
+#### IdentityHashMap 实现类
+- IdentityHashMap 类在处理两个 key 严格相等 （key1 == key2） 时， 才认为两个 key 相等；
+- 普通 HashMap 类则通过 equals() 方法判定
+
+> IdentityHashMap 在实现 Map 接口时，有意违反 Map 通常规范
+
+#### EnumMap 实现类
+- EnumMap 中所有 key 都必须时单个枚举类的枚举值
+- 创建 EnumMap 时必须显式或隐式指定它对应的枚举类
+- 在内部以数组形式保存
+- 根据 key 的自然顺序（即枚举值在枚举类中的定义顺序）维护 key-value 顺序
+- 不允许使用 null 作为 key，但可作为 value
+
+#### 各 Map 性能分析
+- HashMap 和 Hashtable 效率大致相同
+- TreeMap 比HashMap 慢，在底层采用红黑树管理 key-value 对
+- 对于一般的场景，考虑 HashMap
+- LinkedHashMap 比 HashMap 慢，需要维护链表来保持 key-value 的添加顺序
+- EnumMap 性能最好，但只能使用同一个枚举类的枚举值作为 key
+
+### 8.7 HashSet 和 HashMap 的性能选项
+- 容量(capacity)：hash 表中桶的数量
+- 初始化容量(initial capacity)：创建hash表时桶的数量
+- 尺寸(size)：当前hash表中记录的数量
+- 负载因子(load factor)： 等于 size/capacity
+
+### 8.8 操作集合工具类 Collections
+#### 排序操作
+- reverse 反转
+- shuffle 随机排序
+- sort(List list) 根据自然顺序升序排序
+- sort(List list, Comparator c) 根据指定 comparator 产生顺序对List排序
+- swap 指定两元素交换
+- rotate(List list, int distance) 当 distance为正，将list的后 distance 个元素整体移到前面；当 distance 为负，将 list 的前 distance 个元素整体移到后面
+
+#### 查找、替换操作
+- binarySearch 二分法搜索
+- max 根据（自然/指定）排序，返回集合中最大元素
+- min 返回最小元素
+- fill 用指定元素替换list中所有元素
+- frequency 返回元素出现次数
+- indexOfSubList 返回子List对象在父List对象中第一次出现的位置索引
+- lastIndexOfSubList 返回子List对象在父List对象中最后一次出现的位置索引
+- replaceAll 使用一个新值替换List对象的所有旧值
+
+#### 同步控制
+synchronizedXxx() 方法，将指定集合包装成线程同步的集合,解决多线程并发访问集合时的线程安全问题
+
+#### 设置不可变集合
+- emptyXxx() 返回一个空的、不可变的集合对象，可为 List, Set, Map
+- singletonXxx() 返回一个只包含指定对象的、不可变的集合对象，可为 List, Set, Map
+- unmodifiableXxx() 返回指定集合对象的不可变视图
+
+## 第9章 泛型
+### 9.1 泛型入门
 
