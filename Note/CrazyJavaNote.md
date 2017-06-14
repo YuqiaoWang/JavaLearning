@@ -825,4 +825,265 @@ synchronizedXxx() 方法，将指定集合包装成线程同步的集合,解决�
 
 ## 第9章 泛型
 ### 9.1 泛型入门
+把一个对象丢进 Java 集合，集合就会忘记这个对象的数据类型，取出对象时编译类型就变成了 Object  
+Java 引入参数化类型的概念，允许在创建集合时能指定集合元素类型  
+参数化类型被称为泛型
+<pre><code>
+List&lt;String> strList = new ArrayList<>();
+Map&lt;String, Integer> scores = new HashMap<>();
+</code></pre>
+Java 允许在构造器后不需要带完整的泛型信息，只要给出一对尖括号即可
+
+
+### 9.2 深入泛型
+泛型：允许在定义类、接口、方法时使用类型形参，这个类型形参将在声明变量、创建对象、调用方法时动态指定  
+可以在声明集合变量、创建集合对象时传入类型实参
+
+**泛型的实质**：允许在定义接口、类时声明类型形参，类型形参在整个接口、类体内可当成类型使用  
+几乎所有可使用普通类型的地方都可以使用这种类型形参  
+
+Set<K>形式时一种特殊的数据类型，是一种与 Set 不同的数据类型，可认为是 Set 类型的子类
+
+> 并不是只有集合类才可以使用泛型声明，虽然集合类是泛型的重要使用场所
+> 当创建带泛型声明的自定义类，为该类定义构造器时，构造器名还是原来的类名，不要增加泛型声明
+
+#### 从泛型类派生子类
+创建了带泛型声明的接口、父类之后，可为接口创建实现类，或从该父类派生子类，但当使用这些接口、父类时不能再包含类型形参
+<pre><code>
+//以下代码均正确
+public class A extends Apple&lt;String>
+public class A extends Apple
+</code></pre>
+
+> 如果子类需要重写父类的方法，注意将返回值类型也进行修改（如果父类中该方法的返回值是泛型）
+
+#### 并不存在泛型类
+不管泛型的实际类型参数是什么，它们在运行时总有同样的类  
+在静态方法、静态初始化块或静态变量的声明和初始化中不允许使用类型形参  
+
+### 9.3 类型通配符
+> List&lt;String> 对象不能被当作 List&lt;Object> 对象使用  
+> 即 List&lt;String> 并不是 List&lt;Object>的子类
+
+未来表示各种泛型List的父类，我们需要使用类型通配符，类型通配符是一个问号(?)，写作List<?>   
+不管List的真实类型是什么，它包含的都是Object
+> 这种写法适用于任何支持泛型声明的接口和类。如：Set<?>, Collection<?>, Map<?,?>  
+
+- 这种带通配符的List仅表示它是各种泛型List的父类，并不能把元素加入其中  
+- 调用get()方法返回List<?>集合元素，总是一个Object，可以把get()返回值赋给一个Object类型变量
+
+#### 设定通配符的上限
+当我们想要用通配符表示某一泛型List的父类，而不是任何泛型List的父类，可以使用：
+<pre><code>
+//表示所有SuperClass泛型List的父类
+List&lt;? extends SuperClass>
+</code></pre>
+
+#### 设定类型形参上限
+用于表示传给该类型的实际类型要么是该上限类型，要么是该上限类型的子类
+<pre><code>
+public class Apple&lt;T extends Number> {
+    T col;
+    public static void main(String[] args) {
+        Apple&lt;Integer> ai = new Apple<>();
+        Apple&lt;Double> ad = new Apple<>();
+        //编译错误,String 不是 Number 子类型
+        Apple&lt;String> as = new Appke<>(); 
+    }
+} 
+</code></pre>
+
+### 9.4 泛型方法
+#### 定义泛型方法
+**泛型方法**：在声明方法时定义一个或多个类型形参
+<pre><code>
+修饰符 &lt;T, S> 返回值类型 方法名(形参列表){
+    //方法体
+}
+static &lt;T> void fromArrayToCollection(T[] a, Collection&lt;T> c) {
+    for(T o : a) {
+        c.add(o);
+    }
+}
+</code></pre>
+- 与接口、类声明中定义的类型形参不同，方法中定义的形参只能在该方法里使用
+- 方法中的泛型参数无须显式传入实际类型参数
+
+#### 泛型方法和类型通配符的区别
+大多数时候都可以用泛型方法代替类型通配符
+> 如果某个方法中一个形参(a)的类型或返回值的类型依赖于另一形参(b)的类型，则形参(b)的类型声明不应该使用通配符，而只能考虑在方法签名中声明类型形参——即使用泛型方法  
+
+#### 泛型构造器
+定义了泛型构造器后，可让Java根据数据参数类型来推断类型参数的类型，且可以显示为构造器中的形参指定实际的类型  
+> 如果程序显式指定了泛型构造器中声明的类型形参的实际类型，则不可以使用“菱形”语法
+<pre><code>
+class MyClass&lt;E>{
+    public &lt;T> MyClass(T ) {
+        //
+    }
+}
+
+public class GenericDiamondTest {
+    public static void main(String[] args) {
+        MyClass&lt;String> mc1 = new MyClass&lt;>(5); //合法
+        MyClass&lt;String> mc2 = new &lt;Integer> Myclass&lt;String>(5); //合法
+        MyClass&lt;String> mc3 = new &lt;Integer> MyClass&lt;>(5); //不合法
+    }
+}
+</code></pre>
+
+#### 设定通配符下限
+&lt;? super Type> 这个通配符表示它必须是 Type 本身，或是 Type 的父类
+
+
+### 9.5 擦除和转换
+当把一个具有泛型信息的对象赋给一个没有泛型信息的变量时，所有在尖括号内的类型信息都将被扔掉。
+> 比如一个List&lt;String> 类型被转换为 List, 则该List对集合元素的类型检查变成了类型变量的上限（即Object）
+
+### 9.6 泛型与数组
+- 数组元素的类型不能包含类型变量或类型形参，除非是无上限的类型通配符  
+- 但可以声明元素类型包含类型变量或类型形参的数组
+> List&lt;String>[] 可以被声明  
+> ArrayList&lt;String>[10] 不能被创建
+
+
+## 第10章 异常处理
+### 10.1 异常概述
+### 10.2 异常处理机制
+#### try catch捕获异常
+<pre><code>
+try{
+
+}catch (Exception e) {
+
+}
+</code></pre>
+try 语句块出现异常，系统自动生成一个异常对象，该异常对象提交给JRE的过程称为**抛出异常**
+
+#### 异常类的继承体系
+当JRE收到异常对象后，会依次判断该异常对象是否是catch块后异常类或其子类的实例  
+如果是，则调用该catch块来处理异常；否则往下比较  
+![](pic10_1.png)
+
+#### 多异常捕获
+<pre><code>
+try{
+
+}cactch(IndexOutOfBoundsException | NumberFormatException | 
+        ArithmeticException ie) {
+
+}
+</code></pre>
+
+#### 访问异常信息
+- getMessage() 返回异常详细描述字符串
+- printStackTrace() 返回异常跟踪栈信息输出到标准错误输出
+- printStackTrace(PrintStream s) 将异常跟踪栈信息输出到指定输出流
+- getStrackTrace() 返回异常的跟踪栈信息
+
+#### Finally
+不论try语句块是否出现异常，都会执行finally 语句
+
+> 异常处理中， try语句必须有， catch和finally至少出现一种  
+> 即便是catch语句块中有return语句，也会先执行finally再return  
+> 通常情况下，不要在finall语句块中使用return和throw
+
+### 10.3 Checked 异常 与 Runtime 异常
+Java的异常分为两类： Checked 异常和 Runtime 异常（运行时异常）  
+所有的RuntimeException类及其子类实例被称为 Runtime异常；  
+不是Runtime类及其子类实例则被称为Checked异常
+
+Checked异常的处理方式：
+- 当前方法明确知道如何处理异常，使用try...catch捕获异常，在对应catch块修复异常
+- 当前方法不知道如何处理异常，应在定义该方法时抛出异常
+
+#### throws 声明抛出异常
+throws 只能在方法签名中使用，throws可抛出多种异常类，一旦使用throws抛出异常，就无需使用try...catch来捕获异常了
+
+> 子类方法声明抛出的异常类型影视父类方法声明抛出的异常类型的子类或相同  
+> 子类方法抛出的异常不允许比父类方法声明抛出的异常多
+
+当使用Runtime异常时，程序无需在方法中声明抛出 Checked异常，一旦发生自定义错误，程序只管抛出Runtime异常即可  
+一样可以使用try...catch语句来捕获Runtime异常
+
+### 10.4 throw抛出异常
+若需要在程序中自行抛出异常，则应使用throw语句，抛出一个异常实例
+<pre><code>
+throw ExceptionInstance;
+</code></pre>
+
+> 如果throw语句抛出Checked异常，则该throw语句要么处于try块里，显示捕获异常；要么放在一个带throws声明抛出的方法中  
+> 如果throw语句抛出的是Runtime异常，则无须放在try块里，也无须放在带throws声明抛出的方法中
+
+#### 自定义异常类
+都继承Exception基类；  
+若希望自定义Runtime异常，应继承RuntimeException基类  
+
+#### catch 和 throw 同时使用
+当一个异常出现在当前方法中时，可能只能对异常进行部分处理，还需要在该方法的调用者中才能完成，所以应再次抛出异常  
+可以在catch块中结合throw语句来完成
+<pre><code>
+try{
+
+}catch(Exception e){
+    e.printStackTrace();
+    throw new Exception("new exception");
+}
+</code></pre>
+
+### 10.5 Java 的异常跟踪栈
+### 10.6 异常处理规则
+- 不要过度使用异常
+- 不要使用过于庞大的try块
+- 避免使用 Catch All
+- 不要忽略捕获到的异常
+  - 处理异常
+  - 重新抛出异常
+  - 在合适的层处理异常
+
+## 14. 注释
+Annotation 是一个接口，程序可以通过反射来获取指定程序元素的Annotation对象，通过Annotation对象来取得注释里的元数据  
+Annotation 不影响代码的运行
+### 14.1 基本Annotaion
+4个基本Annotaion:
+- @Override
+- @Deprecated
+- @Suppress Warnings
+- @SafeVarargs
+#### 限定重写父类的方法: @Override
+作用：告诉编译器检查这个方法，保证父类要包含一个被该方法重写的方法，帮助避免一些低级错误
+> @Override 只能作用于方法
+
+#### 标示已过时： @Deprecated
+用于表示某个程序元素（类、方法等）已过时，当其他程序使用已过时的类、方法时，编译器发出警告
+
+#### 抑制编译器警告： @SuppressWarnings
+指示被该Annotation修饰的程序元素取消显示指定的编译器警告  
+@SupperessWarnings 会一直作用于该程序元素的所有子元素  
+当使用@SuppressWarnings Annotation来关闭编译器警告时，一定要在括号里使用name = value的形式为该Annotation的成员变量设置值
+
+### 14.2 JDK的元Annotation
+#### 使用 @Retention
+用于指定被修饰的Annotation可以保留多长时间
+
+#### 使用 @Target
+只能修饰一个Annotation定义，用于指定被修饰的Annotation能用于修饰哪些程序单元
+
+#### 使用 @Documented
+用于指定该元Annotation修饰的Annotation类将被javadoc工具提取成文档
+
+#### 使用 @Inherited
+指定被它修饰的Annotation将具有继承性  
+对积累使用@Inheritable 修饰，子类将会默认使用@Inheritable修饰
+
+### 14.3 自定义Annotation
+使用@interface定义Annotation类型
+<pre><code>
+pubic @interface Test {
+    //Test 及为注释名
+}
+</code></pre>
+### 14.4 编译时处理Annotation
+
+## 15. 输入/输出
 
