@@ -1041,6 +1041,123 @@ try{
   - 重新抛出异常
   - 在合适的层处理异常
 
+## 13. MySQL 数据库与 JDBC 编程 
+程序使用JDBC API 以统一的方式来连接不同的数据库，然后通过 Statement 对象来执行标准的 SQL 语句
+### 13.1 JDBC 基础
+JDBC 全称 Java Database Connectivity, 是一种可执行SQL语句的Java API，可以跨数据库  
+通过JDBC驱动的转换，才使得使用相同JDBC API编写的程序，在不同数据库系统上运行良好  
+### 13.2 SQL 语法
+DBMS Database Management System 数据库管理系统  
+DBMS 分类：
+- 网状型数据库
+- 层次型数据库
+- **关系数据库**
+- 面向对象数据库
+
+**数据表**是存储数据的逻辑单元
+- 每一行称为一条**记录**
+- 每一列称为一个**字段**
+应为每个数据表指定一个特殊列，特殊列的值可唯一标识此行的记录，称为**主键列**
+
+标准SQL语句分为以下几种：
+- 查询语句
+- DML（Data Manipulation Language，数据操作语言）:insert, update, delete
+- DDL（Data Definition Language, 数据定义语言）:create, alter, drop, truncate
+- DCL（Data Control Language, 数据控制语言）:grant 和 revoke
+- 事务控制语言：主要由commit,rollback,savepoint 组成
+
+DCL用于为数据库用户授权，不讨论
+
+**标识符**用于定义表名、列名和变量
+规则：
+- 字母开头
+- 包括字母、数字和 #_$
+- 多词建议用_分隔
+- 同一模式（外模式）下的对象不应该同名
+
+> truncate 相当于先删除指定的数据表，再重建该数据表
+
+|对象名称|对应关键字|描述|
+| ------------- |:-------------:| :-----:|
+|表|table|存储数据的逻辑单元；列：字段；行：记录|
+|数据字典||系统表|
+|约束|constraint|执行数据校验的规则|
+|视图|view|数据的逻辑显示，并不存储数据|
+|索引|index|提高查询性能|
+|函数|function|完成特定计算并返回一个值|
+|存储过程|procedure|完成一次义务处理，没有返回值，可通过传出参数将多个值传给调用环境|
+|触发器|trigger|事件监听器，特定事件发生后完成相应处理|
+
+#### 1.创建表的语法
+<pre><code>
+create table [模式名]表名
+{
+    columnName1 datatype [default expr],
+    ...
+}
+</code></pre>
+
+若在建表时同时插入数据：
+<pre><code>
+create table [模式名] 表名
+    [column[,column...]]
+as subquery;
+</code></pre>
+新表的字段列表必须与子查询中的字段列表数量匹配
+
+#### 2. 修改表结构的语法
+包括增加列定义、修改列定义、删除列、重命名列等
+<pre><code>
+alter table 表名
+add
+{
+    column_name1 datatype [default expr].
+    ...
+}
+</code></pre>
+> PS： 如果数据表中已有数据记录，除非给新增的列指定了默认值，否则心中的数据列不可指定非空约束
+<pre><code>
+alter table 表名
+modify column_name datatype [default expr] [first|after col_name];
+</code></pre>
+<pre><code>
+alter table 表名
+drop column_name
+</code></pre>
+<pre><code>
+alter table 表名
+rename to 新表名
+</code></pre>
+
+<pre><code>
+alter table 表名
+change old_column_name new_column_name type [default  expr] [first|after col_name]
+</code></pre>
+
+#### 3. 删除表的语法
+<pre><code>
+drop table 表名;
+</code></pre>
+
+#### 4. truncate 表
+删除该表里的全部数据，但保留表结构
+<pre><code>
+truncate 表名
+</code></pre>
+
+#### 数据库约束
+约束是在表上强制执行的数据校验规则，主要用于保证数据库里数据的完整性  
+**5种完整性约束**：
+- NOT NULL: 非空约束，指定某列不能为空
+- UNIQUE: 唯一约束，指定某列或几列组合不能重复
+- PRIMARY KEY: 主键约束，指定某列的值可以唯一标识该条记录
+- FOREIGH KEY: 外键约束，指定该行记录从属于主表中的一条记录，主要用于保证参照完整性
+- CHECK: 检查约束，指定一个布尔表达式，用于指定对应列的值必须满足该表达式
+
+#### 1. NOT NULL 约束
+
+
+
 ## 14. 注释
 Annotation 是一个接口，程序可以通过反射来获取指定程序元素的Annotation对象，通过Annotation对象来取得注释里的元数据  
 Annotation 不影响代码的运行
