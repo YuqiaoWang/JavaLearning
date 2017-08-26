@@ -1154,7 +1154,42 @@ truncate 表名
 - FOREIGH KEY: 外键约束，指定该行记录从属于主表中的一条记录，主要用于保证参照完整性
 - CHECK: 检查约束，指定一个布尔表达式，用于指定对应列的值必须满足该表达式
 
-#### 1. NOT NULL 约束
+##### I. NOT NULL 约束
+确保指定列不为空
+##### II. UNIQUE 约束
+保证指定列或指定组合列不允许出现重复值
+> 唯一约束的列不可出现重复值，但可出现多个null值
+
+当建立唯一约束时，MySQL在唯一约束所在列（组合）上建立对应的唯一索引
+语法：在列定义后添加 unique 关键字
+> 可在create table语句中添加也可在 alter table语句中使用add关键字或modify关键字添加
+
+##### III. PRIMARY KEY 约束
+相当于**非空约束**和**唯一约束**  
+主键的值用来唯一标识表中的一条记录  
+每一个表中最多允许**一个主键**  
+> MySQL 将所有主键约束命名为 PRIMARY
+
+建立主键约束用 primary key
+
+如果需要删除主键约束，在 alter tabler 语句后使用 drop primary key 子句；  
+如果需要增加主键约束，则通过 modify 修改列定义或 add 来增加主键约束
+
+##### IV. FOREIGN KEY 约束
+外键约束用于保证一个或两个数据表之间的参照完整性  
+外键是构建于一个表的两个字段或两个表的字段之间的参照关系：子（从）表外键列的值必须在主表被参照列的值范围内
+
+采用列级外键约束直接使用 references 关键字
+> MySQL 中列级外键约束不生效
+
+表级外键约束：需要使用 foreign key 来指定本表的外键列，并使用 references 来指定参照哪个主表。以及参照到主表的哪个数据列  
+删除外键约束：在 alter table 后增加 drop foreign key 约束名
+增加外键约束： 在 alter table 后增加 add foreign key 命令
+
+##### V. CHECK 约束
+不会有任何作用
+
+#### 索引
 
 
 
