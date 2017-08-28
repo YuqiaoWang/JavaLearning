@@ -1190,7 +1190,184 @@ truncate 表名
 不会有任何作用
 
 #### 索引
+创建索引的**作用**：加速对表的查询  
+不能单独存在，必须属于某个表
+创建索引的方式：
+- 自动：当在表上定义主键约束、唯一约束和外键约束时自动创建
+- 手动：通过 create index 语句创建(create index 索引名 on 表名)
 
+删除索引：同上/(drop index 索引名 on 表名)
+
+#### 视图
+视图不存储数据，是一个或多个数据表的逻辑显示
+<pre><code>
+create or replace view 视图名
+as
+subquery
+</code></pre>
+
+#### DML 语句语法
+DML 主要操作数据表里的数据，3个任务：插入/修改/删除数据
+
+##### I. insert into 语句
+<pre><code>
+insert into table_name
+values(value [, value...]);
+</code></pre>
+
+有时可用带子查询的插入语句，一次插入多条记录(要求选择出来的数据列和插入目的表的数据列个数相等、数据类型匹配)
+<pre><code>
+insert into student_table2(student_name)
+select teacher_name from teacher_table2;
+</code></pre>
+
+##### II. update 语句
+用于修改数据表的记录，可修改多条，使用where子句限定修改哪些记录
+<pre><code>
+update table_name
+set column1 = value1[, column2 = value2]...
+[where condition];
+</code></pre>
+
+##### III. delete from 语句
+用于删除指定数据表的记录
+<pre><code>
+delete from table_name
+[where condition];
+</code></pre>
+> 当主表记录被从表 reference时，只能先删从表记录，才可删主表记录，除非定义了级联删除 on delete casecade；或者使用 on delete set null 用于当主表记录删除时，从表记录把外键值设为 null
+
+#### 单表查询
+select 语句查询数据，用于从一个、多个数据表中选出指定行、特定列的交集
+<pre><code>
+select column1, column2...
+from 数据源
+[where condition]
+</code></pre>
+若选出所有列，用 select *  
+select 后可以是数据或表达式
+
+#### 数据库函数
+执行函数语法：
+<pre><code>
+function_name(arg1, arg2 ...)
+</code></pre>
+- 函数
+  - 多行函数：又称为聚集函数、分组函数，完成统计功能
+  - 单行函数：对每行起作用，每行返回一个结果
+    - 数值函数
+    - 字符函数
+    - 日期时间函数
+    - 转换函数
+    - 其他函数：位函数、流程控制函数、加密解密函数、信息函数
+
+#### 分组和组函数
+常用5个：
+- avg(expr):计算多行expr平均值
+- count({expr})：计算多行expr总条数
+- max(expr)：计算多行expr最大值
+- min(expr)：计算最小值
+- sum(expr)：求和
+
+> having 子句和 where 子句的区别：  
+> 不能在 where 子句中过滤组，where仅用于过滤行，过滤组必须用having;  
+> 不能在where 子句中使用组函数，having可以
+
+#### 多表连接查询
+#### 子查询
+指在查询语句中嵌套另一查询
+- 出现在from语句，行内视图
+- 出现在where条件后做过滤条件的值
+> 子查询要用括号括起来  
+> 把子查询当过滤条件时，将子查询放在比较运算符右边，单（多）行子查询使用单（多）行运算符
+
+#### 集合运算
+交(intersect)并(union)差(minus)运算  
+并
+<pre><code>
+select 语句 union select 语句
+</code></pre>
+差
+<pre><code>
+select 语句 minus select 语句
+</code></pre>
+
+交
+<pre><code>
+select 语句 intersect select 语句
+</code></pre>
+
+### 13.3 JDBC 典型用法
+#### 常用接口和类
+JDBC API 由以下常用接口和类组成：
+- DriverManager:用于管理JDBC驱动的服务类。使用该类的主要功能是获取Connection 对象
+- Connection：代表数据库连接对象，每个Connection 代表一个物理连接会话
+- Statement: 用于执行SQL 语句的工具接口，该对象可用于执行DDL,DCL,DML语句以及SQL 查询
+- PreparedStatement: 预编译的 Statement 对象，Statement的子接口，允许数据库预编译 SQL 语句，每次只改变SQL 命令的参数，避免数据库每次都编译 SQL 语句
+- ResultSet:结果集对象，包含访问查询结果的方法，可通过列索引或列名获得列数据
+
+#### JDBC 编程步骤
+1. 加载数据库驱动
+<pre><code>
+Class.forName(driverClass)
+//加载MySQL驱动
+Class.forName("com.mysql.jdbc.Driver");
+</code></pre>
+2. 通过 DriverManager 获取数据库连接
+<pre><code>
+DriverManager.getConnection(String url, String user, String pass)
+</code></pre>
+> MySQL 的 URL写法：  
+> jdbc:mysql://hostname:port/databasename
+
+3. 通过 Connection 对象创建 Statement 对象  
+方法有3个：
+  - createStatement()
+  - prepareStatement(String sql)
+  - prepareCall(String sql)
+4. 使用 Statement 执行 SQL 语句  
+方法3个：
+  - execute()：可执行任何SQL语句，但麻烦
+  - executeUpdate()：执行DML和DDL语句
+  - executeQuery()：执行查询语句
+5. 操作结果集  
+如果执行查询语句，则执行结果将返回一个 ResultSet 对象，保存 SQL 语句查询结果
+6. 回收数据库资源
+
+### 13.4 执行 SQL 语句的方式
+#### 使用 excuteUpdate 方法执行 DDL 和 DML 语句
+使用 Statement 执行 DDL 和 DML 语句，区别在于 DDL 语句返回值为0， DML 语句返回值为受影响的记录条数  
+> 成熟的做法：用一个 mysql.ini 文件（properties文件）来保存数据库连接信息，而不是把数据库连接信息写在程序中
+
+#### 使用 execute 方法执行 SQL 语句
+如果不清楚 SQL 语句类型，只能用 execute()方法来执行SQL语句  
+使用 execute()方法返回值只是boolean值，表明该SQL语句是否返回了ResultSet对象， Statement 提供2个方法获取执行结果：
+- getResultSet()：获取 ResultSet 对象
+- getUpdateCount()：获取DML语句影响的记录行数
+
+#### 使用 PreparedStatement 执行 SQL 语句
+对于2条SQL语句，如果只是插入值不同，可用占位符(?)参数的SQL语句来代替：
+<pre><code>
+insert into student_table(null, ?, ?);
+</code></pre>
+为满足此功能，JDBC提供 PreparedStatement接口，可预编译SQL语句，存储在 PreparedStatement 对象中，可对该对象多次执行该语句，更高效
+<pre><code>
+//创建PreparedStatement对象
+pstmt = conn.prepareStatement("insert into student_table values(null, ?, 1");
+</code></pre>
+PreparedStatement提供一系列 setXxx(int index, Xxx value) 方法来传入参数值  
+PreparedStatement 比 Statement 多了3个好处：
+- 预编译 SQL 语句，性能好
+- 无需拼接 SQL 语句
+- 可防止 SQL 注入，安全性好
+
+#### 使用 CallableStatement 调用存储过程
+
+### 13.5 管理结果集
+### 13.6 Java 7 的 RowSet 1.1
+### 13.7 事务处理
+### 13.8 分析数据库信息
+### 13.9 使用连接池管理连接
 
 
 ## 14. 注释
