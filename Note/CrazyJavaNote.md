@@ -1322,9 +1322,9 @@ DriverManager.getConnection(String url, String user, String pass)
 
 3. 通过 Connection 对象创建 Statement 对象  
 方法有3个：
-  - createStatement()
-  - prepareStatement(String sql)
-  - prepareCall(String sql)
+  - createStatement():创建基本 Statement对象
+  - prepareStatement(String sql):根据传入的SQL语句创建预编译的Statement对象
+  - prepareCall(String sql):根据传入的SQL语句创建Called
 4. 使用 Statement 执行 SQL 语句  
 方法3个：
   - execute()：可执行任何SQL语句，但麻烦
@@ -1451,3 +1451,169 @@ stream 是从源到接收的有序数据
   - 处理流： 对一个已存在的流进行连接或封装，通过封装后的流来实现数据读写功能，并不直接连接到实际的数据源
 > 使用处理流的好处：只要使用相同的处理流，程序就可以采用完全相同的输入输出代码来访问不同的数据源，随着处理流所包装节点流的变化，程序实际所访问的数据源也相应发生变化。  
 > 处理流来包装节点流是一种**装饰器设计模式**，即可以消除不同节点流的实现差异，也可以提供更方便的方法来完成输入/输出功能
+
+#### 流的概念模型
+Java 的 40多个类都是从如下4个抽象基类派生的:
+- InputStream/Reader:所有输入流的基类，前者是字节输入流，后者是字符输入流
+- OutputStream/Reader:所有输出流的基类，前者是字节输出流，后者是字符输出流
+
+字节流和字符流的处理方式相似，处理的单位不同而已  
+输入流使用隐式的记录指针来表示当前正准备从何处开始读取，每当程序从 InputStream 或 Reader 里读取一个或多个单位后，记录指针自动向后移动
+对于 OutputStream 和 Writer 而言，执行输出时，程序把每个单位放入到输出流的水管中，输出流同样采用隐式记录指针来标示当前单位即将放入的位置，每当程序向 OutputStream 或 Writer 里输出一个或多个单位后，记录指针自动向后移动
+
+### 15.3 字节流和字符流
+#### InputStream 和 Reader
+InputStream 和 Reader 是所有输入流的抽象基类  
+InputStream 和 Reader 都是抽象类，本身不能创建实例，但它们分别有一个用于读取文件的输入流：FileInputStream 和 FileReader，都是节点流  
+> 需要显式关闭文件IO资源
+
+#### OutputStream 和 Writer
+字符流直接以字符作为操作单位，所以 Writer 可以用字符串来代替字符数组，即以 String 对象作为参数  
+FileOutputStream 和 FileWriter  用于读取文件的输出流
+
+### 15.4 输入/输出流体系
+#### 处理流的用法
+处理流的功能，可以隐藏底层设备上节点流的差异  
+使用处理流的典型思路：使用处理流来包装节点流，程序通过处理流来执行输入/输出功能  
+识别处理流：只要流的构造器参数不是一个物理节点，而是已存在的流，那么这种流就一定是处理流
+下面用 PrintStram 处理流来包装节点流,最后用PrintStream输出字符串、输出对象
+<pre><code>
+public class PrintStreamTest {
+    public static void main(String[] args) {
+        try{
+            FileOutputStream fos = new FileOutputStream("test.txt");
+            PrintStream ps = PrintStream(fos);
+            //使用 PrintStream 执行输出
+            ps.println("普通字符串");
+            ps.println(new PrintStreanTest());
+        }catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+}
+</code></pre>
+> 前面程序中使用的标准输出就是 PrintStream
+程序使用处理流非常简单，通常只需要在创建处理流时传入一个节点流作为构造器即可。这样创建的处理流就是包装了该节点流的处理流
+
+#### 输入/输出流体系
+
+| 分类 | 字节输入流 | 字节输出流 | 字符输入流 | 字符输出流 |
+| -------- |:-------------:| :-----:| :-----:| :-----:|
+| 抽象基类 | InputStream | OutputStream | Reader | Writer |
+| 访问文件 | FileInputStream | FileOutputStream | FileReader | FileWriter |
+| 访问数组 | ByteArrayInputStream | ByteArrayOutputStream | CharArrayReader | CharArrayWriter |
+| 访问管道 | PipedInputStream | PipedOutputStream | PipedReader | PipedWriter |
+| 访问字符串 |  |  | StringReader | StringWriter |
+| 缓冲流 | BufferedInputStream | BufferedOutputStream | BufferedReader | BufferedWriter |
+| 转换流 |  |  | InputStreamReader | OutputStreamWriter |
+| 对象流 | ObjectInputStream | ObjectOutputStream |  |  |
+| 抽象基类 | FilterInputStream | FilterOutputStream | FilterReader | FilterWriter |
+| 打印流 |  | PrintStream |  | PrintWriter |
+| 推回输入流 | PushbackInputStream |  | PushbackReader |  |
+| 特殊流 | DataInputStream | DataOutputStream |  |  |
+
+通常的规则：如果进行输入/输出的内容是文本内容，则考虑使用字符流；如果是二进制内容，则考虑字节流
+> 所有能用记事本打开并看到字符内容的文件成为文本文件，反之称为二进制文件。Windows下中文默认GBK字符集，Linux默认UTF-8字符集
+
+以数组为物理节点的节点流在创建节点对象时需要传入一个字节数组或字符数组  
+字符流还可使用字符串作为物理节点，实现从字符串读取内容，或将内容写进字符串  
+PipedInputStream、PipedOutputStream、PipedReader、PipedWriter都是用于实现进程间通信功能的  
+4个缓冲流都有缓冲功能，需要使用flush()才可将缓冲区内容写进实际物理节点
+
+#### 转换流
+输入/输出体系提供2个转换流，用于实现将字节流转换成字符流  
+InputStreamReader 输入流转换  
+OutputStreamWriter 输出流转换
+> 没有字符流转字节流的转换流
+
+#### 推回输入流
+PushbackInputStream 和 PushbackReader都带有一个推回缓冲区，调用unread()方法后，系统把指定数组的内容推回到缓冲区里，而每次调用read()方法总是先从推回缓冲区读取，还没装满read()所需的数组时才从输入流中读取
+
+#### 重定向标准输入/输出
+Java的标准输入/输出分别通过 System.in 和 System.out 代表，默认情况下分别代表键盘和显示器
+在System类里提供了如下3个重定向标准输入/输出方法：
+- static void setErr(PrintStream err): 重定向“标准”错误输出流
+- static void setIn(InputStream in): 重定向“标准”输入流
+- static void setOut(PrintStrean out): 重定向“标准”输出流
+
+### 15.6 Java虚拟机读写其他进程的数据
+Runtime对象的exec()方法可运行平台上的其他程序，该方法产生一个Process对象，代表由该Java程序启动的子进程  
+Process类提供3个方法，用于程序和其子进程进行通信：
+- InputStream getErrorStream(): 获取子进程的错误流
+- InputStream getInputStream(): 火气子进程的输入流
+- OutputStream getOutputStream(): 获取子进程的输出流
+> 站在程序的角度，子进程读取程序中的数据，是输出流
+例子：
+<pre><code>
+public class ReadFromProcess{
+    public static void main(String[] args) throws IOException {
+        //运行 javac 命令，返回运行命令的子进程
+        Process p = Runtime.getRuntime().exec("javac");
+        try{
+            //以p进程的错误流创建 BufferReader对象
+            //这个错误流对本程序是输入流，对p进程是输出流
+            BufferedReader br = new BufferedReader(new 
+                InputStreamReader(p.getErrorstream()));
+            String buff = null;
+            //循环读取p进程错误
+            while((buff = br.readLine()) != ) {
+                System.out.println(buff);
+            }
+        }
+    }
+}
+</code></pre>
+
+### 15.7 RandomAccessFile
+RandomAccessFile 是 java 输入/输出流体系中功能最丰富的文件内容访问类，提供众多方法来访问文件内容，可读取文件内容，也可向文件输出数据  
+支持随机访问，程序可跳转文件任意位置来读写数据  
+如果值希望访问文件**部分内容**，使用 RandomAccessFile类是更好的选择  
+RandomAccessFile 允许自由定位文件记录指针，可以不从开始的地方输出，可以向已存在文件后追加内容  
+RandomAccessFile对象也包含一个记录指针，标示当前读写处的位置,可自由移动该记录指针，包含2个方法来操作记录指针：
+- long getFilePointer(): 返回指针当前位置
+- void seek(long pos): 将文件记录指针定位到 pos 位置
+
+RandomAccessFile 即可读文件，也可以写，包含一系列readXxx()和writeXxx()完成输入、输出
+> Radom 可以理解为“任意”，而不是“随机”  
+> RadomAccessFile 依然不能向文件指定位置插入内容，如果直接将指针移动到中间某位置并开始输出，新输出会覆盖文件中原有内容。如果需要向指定位置插入内容，程序需要先把插入点后面的内容读入缓冲区，等把需要插入的数据写入文件后，再将缓冲区内容追加到文件后面
+
+> 多线程断点的网络下载工具恶口通过RandomAccessFile来实现，所有的下载工具在下载开始时会创建2个文件：一个与被下载文件大小相同的空文件，一个是记录文件指针的位置文件，下载工具用多条线程启动输入流来读取网络数据，使用RandomAccessFile将从网络上读取的数据写入前面建立的空文件中，每写一些数据，记录文件指针分别记下每个RandomAccessFile当前的文件指针文职，网络端口后，再次开始下载，每个RandomAccessFile都根据记录文件指针的文件中记录的位置继续向下些数据。
+
+### 15.8 对象序列化
+对象序列化的**目标**：将对象保存到磁盘中，或允许在网络中直接传输对象  
+对象序列化的机制允许把内存中的Java对象转换成平台无关的二进制流，从而允许这种二进制流持久保存在磁盘上，通过网络将二进制流传输到另一网络节点，恢复成原来的二进制对象
+
+#### 序列化的含义和意义
+对象的序列化(Serialize)：指将一个Java对象写入IO流；反序列化(Deserialize)只从IO流中恢复该Java对象
+如果需要某对象支持序列化，则必须实现以下2个接口之一：
+- Serializable
+- Externalizable
+所有可能在网络上传输的类都应该是可序列化的
+
+#### 使用对象流实现序列化
+程序可通过以下两步骤来序列化该对象:
+1. 创建一个 ObjectOutputStream， 这个输出流是一个处理流，必须建立在其他节点的基础上
+<pre><code>
+ObjectOutputStream oos = new ObjectOutputStream(
+    new FileOutputStream("Object.txt"));
+</code></pre>
+2. 调用 ObjectOutputStream对象的writeObject()方法输出可序列化对象
+<pre><code>
+//将一个对象写入输出流
+oos.writeObject(person);    //Person类对象person
+</code></pre>
+
+如果希望从二进制流中恢复 Java 对象，则需要反序列化，步骤如下：
+1. 创建一个 ObjectInputStream 输入流，是一个处理流，必须建立在其他节点流的基础之上
+<pre><code>
+ObjectInputStream ois = new ObjectInputStream(
+    new FileInputStream("Object.txt"));
+</code></pre>
+2. 调用 ObjectInputStream 对象的 readObject()方法读取流中的对象，该方法返回一个 Object 类型的 Java 对象
+<pre><code>
+Person p = (Person) ois.readObject();
+</code></pre>
+
+> 反序列化机制无须通过构造器来初始化 Java 对象
+
+
