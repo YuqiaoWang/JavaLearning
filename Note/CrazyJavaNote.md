@@ -1616,4 +1616,239 @@ Person p = (Person) ois.readObject();
 
 > 反序列化机制无须通过构造器来初始化 Java 对象
 
+#### 对象引用的序列化
+如果某个类的Field类型不是基本类型或String，那么这个引用类必须是可序列化的，否则拥有该类型的Field的类也是不可序列化的  
+
+Java 序列化机制采用了一种特殊的序列化算法：
+- 所有保存到磁盘中的对象都有一个序列化编号
+- 当程序试图序列化一个对象时，程序先检查该对象是否已被序列化过，只有该对象从未（在本虚拟机）被序列化过，系统才会将该对象转换车号给你字节序列并输出
+- 如果某个对象已序列化过，程序只直接输出一个序列化编号，而不是再次重新序列化该对象
+
+当程序序列化一个可变对象时，只有第一次使用 writeObject()方法输出时才会将该对象转换成字节序列并输出，再次调用 writeObject()方法时，程序只输出前面的序列化编号，即使后面对象的Field值已改变，改变的Field值也不会输出
+
+#### 自定义序列化
+通过在Field前面使用transient关键字修饰，可指定Java序列化时无须理会该Field
+> transient 关键字只能用于修饰Field，不可修饰Java程序中其他部分
+
+被transient修饰的Field将被完全隔离在序列化机制之外，导致反序列化恢复Java对象时无法取得该Field值。  
+Java 还提供一种自定义序列化机制，可以让程序控制如何序列化各Field，甚至完全不序列化某些Field  
+- writeObject()方法负责写入特定类的实例状态，以便相应readObject()方法可以恢复它
+- readObject()方法负责从流中读取并恢复对象Field，通过重写该方法，可自主决定需要反序列化哪些Field，以及如何反序列化
+- 当序列化流不完整时，readObjectNoData()方法可以用来正确初始化反序列化的对象
+
+下面的Person类提供writeObject()和readObject()两个方法
+<pre><code>
+public class Person implements java.io.Serializable {
+    private String name;
+    private int age;
+    //此处没有无参构造器
+    public Person(String name, int age) {
+        System.out.println("有参数构造器");
+        this.name = name;
+        this.age = age;
+    }
+    //省略setter、getter
+    private void writeObject(java.io.ObjectOutputStream out)
+        throws IOException {
+            //将name Field值反转后写入二进制流
+            out.writeObject(new StringBuffer(name).reverse());
+            out.writeInt(age);
+    }
+    private void readObject(java.io.ObjectInputStream in)
+        throws IOException, ClassNotFountException {
+            this.name = ((StringBuffer)in.readObject()).reverse().toString();
+            this.age = in.readInt();
+        }
+}
+</code></pre>
+
+#### 另一种自定义序列化机制
+这种序列化方式完全由程序员决定存储和恢复对象数据，Java类必须实现 Externalizable 接口，需实现两个方法：
+- void readExternal(ObjectInput in)
+- void writeExternal(ObjectOutput out)
+
+下例用Externalizable接口实现自定义序列化
+<pre><code>
+public class Person implements java.io.Externalizable {
+    private String name;
+    private int age;
+    //没有无参构造器
+    public Person(String name, int age) {
+        System.out.println("有参数的构造器");
+        this.name = name;
+        this.age = age; 
+    }
+    //省略getter 和 setter
+    public void writeExternal(java.io.ObjectOutput out) throws IOException{
+        //将name Field值反转后写入二进制流
+        out.writeObject(new StringBuffer(name).reverse());
+        out.writeInt(age);
+    }
+    public void readExternal(java.io.ObjectInput in) 
+        throws IOException, ClassNotFoundException{
+        //将读取的字符串反转后赋给name Field
+        this.name = ((StringBuffer)in.readObject().reverse().toString());
+        this.age = in.readInt();
+    }
+}
+</code></pre>
+
+实现Externalizable 接口导致编程复杂度增加，大部分时候用 Serializable 接口来实现序列化
+
+> 对象序列化需要注意：
+> - 对象的类名、Field都会被序列化；方法、static Field transient Field 不会
+> - 实现Serializable接口的类如果需要让某个Field不被序列化，在该Field前加transient修饰
+> - 保证序列化对象的Field类型也是可序列化的
+> - 反序列化对象时必须有序列化对象的 class 文件
+> - 当通过文件、网络来读取序列化后的对象时，必须按实际写入的顺序读取
+
+#### 版本
+Java序列化机制允许为序列化类提供一个private static final 的 serialVersionU值，该Field 用于标识该 Java 类的序列化版本，如果一个类升级后，只要它的 serialVersionUID Field值保持不变，序列化机制也会把他们当成同一个序列化版本
+
+### 15.9 NIO
+Java 1.4 提供了心得处理输入/输出的类，放在java.nio包下
+#### NIO概述
+NIO采用内存映射文件的方式处理输入/输出，将文件或文件区的一段区域映射到内存中，就可以像访问内存一样来访问文件  
+Channel 和 Buffer 是NIO中的两个核心对象，Channel是对传统的输入/输出系统的模拟，在NIO系统中所有的数据都需要通过通道传输：Channel与传统的InputStream、OutputStream最大的区别在于它提供了一个map()方法，通过该map()方法可以直接将“一块数据”映射到内存中  
+如果说传统IO系统面向流的处理，则NIO是面向**块**的处理
+Buffer 可以被理解成一个容器，本质是一个数组，发送到Channel中的所有对象都必须放到Buffer中,而从Channel 中读取的数据也必须先放到Buffer中  
+除Channel和Buffer外，NIO还提供将Unicode字符串映射成字节序列以及逆映射操作的Charset类，也提供了用于支持非阻塞式输入/输出的Selector类
+
+#### 使用 Buffer
+Buffer是一个抽象类，其最常用的子类是ByteBuffer，可以在底层字节数组上进行get/set操作,对应于其他基本数据类型（boolean除外）都由相应Buffer类：CharBuffer、ShortBuffer、IntBuffer、LongBuffer、FloatBuffer、DoubleBuffer  
+
+Buffer类都没有提供构造器，通过使用如下方法来得到一个Buffer对象：
+- static XxxBuffer allocate(int capacity)：创建一个容量为capacity的XxxBuffer对象
+> 使用较多的是ByteBuffer和CharBuffer.ByteBuffer还有一个子类MappedByteBuffer，用于表示Channel将磁盘文件的部分或全部内容映射到内存中后得到的结果
+
+在Buffer中有3个重要的概念：capacity,limit,position
+- 容量(capacity): 缓冲区的容量表示该Buffer的最大数据容量，创建后不能改变
+- 界限(limit): 第一个不应该被读出或写入的缓冲区位置索引
+- 位置(position): 用于指明下一个可以被读出或写入的缓冲区位置索引（类似于IO流中的记录指针）
+
+除此之外，Buffer还支持一个可选的标记(mark)，允许直接将position定位到mark处，满足如下关系：
+> 0 <= position <= limit <= capacity
+
+下图展示了某个Buffer读入一些数据后的示意图
+
+![](pic15_1.png)
+
+Buffer的主要作用就是装入数据，然后输出数据，开始时Buffer的position为0；程序通过put()方法向Buffer中放入一些数据，position相应地向后移动一些位置；Buffer调用flip()方法之后，Buffer为输出数据做好准备；当Buffer输出数据结束后，调用clear()方法，将position置为0（不清空Buffer的数据），limit置为capacity  
+> Buffer包含2个重要的方法，即flip()和clear(),flip()为从Buffer中取出数据做好准备，而clear()为再次向Buffer中装入数据做好准备
+
+Buffer所有子类提供2个重要方法：put()和get()方法，用于向Buffer中放入数据和从Buffer中取出数据，支持单个数据和批量数据访问，使用put()和get()时，分绝对和相对两种：
+- 相对(Relative)：从Buffer当前position开始读取或写入数据，然后将position的值按处理元素的个数增加
+- 绝对（Absolute）:直接根据索引向Buffer中读取或写入数据，并不影响position的值
+
+#### 使用 Channel
+Channel 类似于传统的流对象，但有2个区别：
+- Channel 可直接将指定文件的部分或全部直接映射成Buffer
+- 程序不能直接访问 Channel 中的数据（包括读写），Channel只能与Buffer进行交互
+
+即如果从Channel中取得数据，必须先用Buffer从Channel中取出一些数据，然后让程序从Buffer中取出这些数据；如果将程序数据写入Channel，一样先放入Buffer，再将Buffer里的数据写入Channel中  
+Java为Channel接口提供了DatagramChannel、FileChannel、Pipe.SinkChannel、Pipe.SourceChannel、SelectableChannel、ServerSocketChannel、SocketChannel等实现类  
+NIO里的Channel是按功能划分的：Pipe.SinkChannel、Pipe.SourceChannel是用于支持线程间通信的管道Channel；ServerSocketChannel、SocketChannel是用于支持TCP网络通信的Channel；DatagramChannel是用于支持UDP网络通信的Channel  
+
+所有的Channel都不是构造器创建的，而是通过传统节点InputStream、OutputStream的getChannel()方法返回对应的Channel,不同节点流获得的Channel不一样。如，FileInputStream和FileOutputStream的getChannel()方法返回的是FileChannel
+
+Channel最长用的3类方法是map()、read()和write()
+- map()方法用于将Channel对应的部分或全部数据映射成ByteBuffer
+- read()或write()都有一系列重载形式，用于从Buffer中读取数据或向Buffer中写入数据
+
+<pre><code>
+MappedByteBuffer map(FileChannel.MapMode mode, long position, long size)
+第一个参数执行映射时的模式，有只读、读写等；第二、三个参数用于控制将Channel中的哪些数据映射成ByteBuffer
+</code></pre>
+
+<pre><code>
+public class FileChannelTest{
+    public static void main(String[] args) {
+        File f = new File("FileChannelTest.java");
+        try{
+            //创建FileInputStream，以该文件输入流创建FileChannel
+            FileChannel inChannel = new FileInputStream(f).getChannel();
+            //以文件输出流创建FileChannel，以控制输出
+            FileChannel outChannel = new FileOutputStream("a.txt").getChannel();
+            //将FileChannel里的全部数据映射成ByteBuffer
+            MappedByteBuffer buffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, f.length());
+            //使用GBK字符集来创建解码器
+            Charset charset = Charset.forName("GBK");
+            //直接将buffer里的数据全部输出
+            outChannel.write(buffer);
+            //再次调用buffer的clean()方法，复原limit、position的位置
+            buffer.clear();
+            //创建解码器(CharsetDecoder)对象
+            CharsetDecoder decoder = charset.newDecoder();
+            //使用解码器将ByteBuffer转换成CharBuffer
+            CharBuffer charBuffer = decoder.decode(buffer);
+            System.out.println(charBuffer);
+
+        }catch(IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+</code></pre>
+
+#### 字符集和Charset
+所有文件在底层都是二进制文件，全都是字节码  
+下面是编解码示意图
+![](pic15_2.png)
+
+Java默认使用Unicode字符集，但很多操作系统并不使用 
+ Java 1.4 提供了Charset来处理字节序列和字符序列(字符串)之间的转换，包含创建解码器和编码器的方法，还提供了获取Charset所支持字符集的方法，Charset类是不可变的
+
+ 每个字符集有一个字符串别名：
+ - GBK 简体中文字符集
+ - UTF-8 8为UCS转换格式
+ - ...
+
+ 获得Charset对象后，就可以通过该对象的newDecoder()、newEncoder()两个方法返回CharsetDecoder和CharsetEncoder对象
+
+ #### 文件锁
+ 使用文件锁可以阻止多个进程并非修改同一文件  
+ NIO中，Java提供了额FileLock来支持文件锁定功能，在FileChannel 中提供lock()/tryLock()方法可获取文件锁FileLock对象，从而锁定文件，区别：
+ - lock()试图锁定文件时，如果无法得到文件锁，程序阻塞
+ - tryLock()尝试锁定文件，直接返回而不是阻塞，如果获得文件锁，则返回文件锁，否则返回null
+
+<pre><code>
+lock(long position, long size, boolean shared)
+对文件从position开始，长度为size的内容加锁，阻塞式
+
+tryLock(long position, long size, boolean shared)
+非阻塞式的加锁方法
+</code></pre>
+当shared为true时，表明该锁是一个共享锁，允许多个进程来读取该文件，但阻止其他进程获得对该文件的排他锁。当shared为false时，该锁为排他锁，锁住对该文件的读写
+
+ > 文件锁可用于控制并发访问，但对于高并发访问场景，推荐使用数据库来保存程序信息，而非文件
+
+### 15.10 Java7 的 NIO.2
+NIO2的改进：
+- 提供全面的文件IO和文件系统访问支持
+- 基于异步 Channel 的 IO
+
+#### Path、Paths 和 Files 核心 API
+NIO.2引入一个Path接口，代表一个平台无关的平台路径，还提供了Files、Paths两个工具类
+
+#### 使用 FileVistor遍历文件和目录
+FileVistor 代表一个文件访问器，Files类提供如下两个方法来遍历文件和子目录：
+- walkFileTree(Path start, FileVistor<? super Path>visitor):遍历start路径下所有文件和子目录
+- walkFileTree(Path start, Set&lt;FileVisit> options, int maxDepth, FileVisitor<? super Path> visitor): 该方法最多遍历maxDepth深度的文件
+
+#### 使用 WatchService 监控文件变化
+NIO.2的Path类提供一个方法来监听文件系统的变化
+WatchService 代表一个文件系统监听服务，负责监听path代表的目录下的文件变化
+- register(WatchService watcher, WatchEvent.Kind<?>... events): 用water来监听该path代表的目录下的文件变化，events参数指定监听哪些类型的事件  
+一旦使用register()方法完成注册后，就可以用WatchService的3个方法来获取被监听目录文件变化事件：
+- WatchKey poll(): 获取下一个WatchKey
+- WatchKey poll(long timeout, TimeUnit unit):尝试等待timeout时间就去获取下一个WatchKey
+- WatchKey take(): 获取下一个WatchKey，如果没有就一直等待
+
+如果程序需要一直监控，则选择take()方法
+
+#### 访问文件属性
+
+## 16. 多线程
+### 16.1 线程概述
+
 
