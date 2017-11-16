@@ -1850,5 +1850,232 @@ WatchService 代表一个文件系统监听服务，负责监听path代表的目
 
 ## 16. 多线程
 ### 16.1 线程概述
+每个运行的程序是一个进程，程序运行时，内部可能包含多个顺序执行流，每个顺序执行流是一个线程
+#### 线程和进程
+所有运行中的任务通常对应一个进程(Process)  
+进程是出于运行过程中的程序，并具有一定独立功能，进程是系统进行资源分配和调度的一个独立单位  
+进程3个特性：
+- 独立性：进程是系统中独立存在的实体，它可以拥有自己独立的资源，每一个进程都有自己私有的地址空间
+- 动态性：进程与程序的区别在于，程序只是一个静态的指令集合，而进程是一个正在系统中活动的指令集合
+- 并发性：多个进程可以在单个处理器上并发执行，多个进程间不相互影响
+
+> 并发性(concurrency)和并行性(parallel)是两个概念：并行指在同一时刻，有多条指令在多个处理器上同时执行；并发性指在同一时刻只有一条指令执行，但多个进程指令被快速轮换执行
+
+- 多线程扩展了多进程的概念，使得同一个进程可以同时并发处理多个任务。线程(Thread)也被称作轻量级进程，线程是进程的执行单元。线程在程序中是独立的、并发的执行流  
+- 线程是进程的组成部分，一个进程可以拥有多个线程，一个线程必须有一个父进程  
+- 线程可与其他线程共享父进程中的共享变量及部分环境  
+- 线程是独立运行的，线程的执行是抢占式的，当前运行的线程在任何时候都有可能被挂起，以便另一个线程可运行  
+- 同一进程中多个线程之间可以并发  
+
+#### 多线程的优势
+- 进程间不能共享内存，但线程之间共享内存
+- 系统创建进程时需要为该进程重新分配资源，而创建线程代价很小，因此多线程实现多任务并发比多进程效率高
+- Java 内置多线程功能
+
+### 16.2 线程的创建和启动
+线程对象都必须是Thread类或其子类的实例，每个线程的作用是完成一定的任务
+
+#### 继承Thread类创建线程类
+步骤如下：
+1. 定义Thread类的子类，并重写run()方法，该run()方法的方法体代表线程要完成的任务
+2. 创建Thread子类的实例，即创建了线程对象
+3. 调用线程对象的start()方法来启动该线程
+
+> main()方法的方法体就是主线程的线程执行体  
+> 使用Thread类的方法来创建线程类时，多个线程之间无法共享线程类的实例变量
+
+#### 实现Runnable接口创建线程类
+步骤：
+1. 定义Runnable接口的实现类，并重写接口的run()方法
+2. 创建Runnable实现类的实例，并以此实例作为Thread的target来创建Thread对象，该Thread对象是真正的线程对象
+3. 调用该对象的start()方法来启动该线程
+<pre><code>
+public class SecondThread implements Runnable {
+    private int i;
+    public void run() {
+        for(; i < 100; i++) {
+            //如果想获取当前线程，只能用Thread.currentThread()方法
+            System.out.println(Thread.currentThread().getName() + " " + i);
+        }
+    }
+
+    public static void main(String[] args) {
+        for(int i = 0; i < 100; i++) {
+            System.out.println(Thread.currentThread().getName() + " " + i);
+            if(i == 20) {
+                SecondThread st = new SeconThread();
+                //创建新线程
+                new Thread(st, "新线程1").start();
+                new Thread(st, "新线程2").start();
+            }
+        }
+    }
+}
+</code></pre>
+
+> 继承Thread和实现Runnable接口创建线程对象的区别：前者直接创建的Thread子类即可代表线程对象；后者创建的Runnable对象只能作为线程对象的target
+
+#### 使用Callable和Future创建线程
+Callable接口提供了一个call()方法作为线程执行体  
+call()方法可以有返回值，可以声明抛出异常  
+Java 5提供了Future接口来代表Callable接口里call()方法的返回值，并为Future接口提供了一个FutureTask实现类，实现了Future接口，并实现了Runnable接口————可以作为Thread类的target
+> Callable接口有泛型限制，Callable接口里的泛型形参类型与call()方法返回值类型相同
+
+创建并启动有返回值的线程的步骤如下：
+1. 创建Callable接口的实现类，并实现call()方法，该方法作为线程执行体，且有返回值
+2. 创建Callable实现类的实例，使用FutureTask类来包装Callable对象，该对象封装了Callable对象的call()方法的返回值
+3. 使用FutureTask对象作为Thread对象的target创建并启动新线程
+4. 调用FutureTask对象的get()方法来获得子线程执行结束后的返回值
+
+<pre><code>
+public class ThirdThread implements Callable&lt;Integer> {
+    //实现call方法,作为线程执行体
+    public Integer call() {
+        int i = 0;
+        for(; i < 100; i++) {
+            System.out.println(Thread.currentThread().getName() +
+                " 的循环变量i的值");
+        }
+        //call()方法可以有返回值
+        return i;
+    }
+
+    public static void main(String[] args) {
+        //创建Callable对象
+        ThirdThread rt = new ThirdThread();
+        //使用FutureTask来包装Callable对象
+        FutureTast&lt;Integer> task = new FutureTask&lt;Integer>(rt);
+        for(int i = 0; i < 100; i++) {
+            System.out.println(Thread.currentThread().getName() 
+                + " 的循环变量i的值：" + i);
+                if(i==20) {
+                    //实质还是以Callable对象来创建并启动线程
+                    new Thread(task, "有返回值的线程").start();
+                }
+        }
+        try{
+            //获取线程返回值
+            System.out.println("子线程返回值：" + task.get());
+        }catch(Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+</code></pre>
+
+
+创建Callable实现类与创建Runnable实现类并没有太大差别，只是Callable的call()方法允许声明抛出异常，并允许带返回值
+
+#### 创建线程的三种方式对比
+主要差别：  
+采用实现Runnable、Callable接口创建多线程：
+- 线程类只实现了Runnable或Callable接口，还可以继承其他类
+- 这种方式下，多个线程可共享同一target对象，非常适合多个相同线程处理同一份资源的情况
+- 劣势：编程稍复杂，如需访问当前线程，必须使用Thread.currentThread()方法
+
+采用继承Thread类的方式创建多线程：
+- 劣势：不能继承其他父类
+- 优势：编写简单，需要访问当前线程，直接使用this即可
+
+### 16.3 线程的生命周期
+在线程的生命周期中，要经过新建(New)、就绪(Runnable)、运行(Running)、阻塞(Blocked)和死亡(Dead)5种状态
+#### 16.3.1 新建和就绪状态
+new一个线程后，就处于新建状态，和其他Java对象一样，仅由JVM分配内存并初始化，没有表现任何线程的动态特征，程序也不执行线程执行体  
+当调用start()方法后，进入就绪状态，JVM会为其创建方法调用栈和程序计数器，处于这个状态的线程没有开始运行，只表示可运行了，何时开始运行取决于JVM的调度
+> 永远不要调用线程对象的run()方法，系统会把线程对象当成一个普通对象,run()方法当成一个普通方法，调用了run()方法后，线程不再处于新建状态，不要在此调用start()方法  
+
+> 只能对处于新建状态的线程调用start()方法，否则抛出IllegalThreadStateException  
+
+> 如果希望调用子进程start()后立即开始执行，可以使用Thread.sleep(1)让当前运行的线程（主线程）睡眠1ms，CPU会去执行另一个处于就绪状态的线程，这样就可以让子线程立即开始执行.
+
+
+<pre><code>
+public class InvokeRun extends Thread {
+    private int i;
+    public void run() {
+
+    }
+    public static void main(String[] args) {
+        for(int i = 0; i < 100; i++) {
+            //调用Thread的currentThread()方法获取当前线程
+            System.out.println(Thread.currentThread.getName() + " " + i);
+            if(i == 20) {
+                //直接调用线程对象run()方法
+                //系统会把线程对象当成普通对象，把run()方法当成普通方法
+                //下面代码不会启动2个线程，而是依次执行两个run()方法
+                new InvokeRun().run
+            }
+        }
+    }
+}
+</code></pre>
+
+#### 16.3.2 运行和阻塞状态
+当一个线程开始运行后，它不可能一直处于运行状态，线程在运行过程中需要被中断。在选择下一个线程时，系统会考虑线程的优先级
+
+当如下情况时，线程将会进入阻塞状态：
+- 线程调用sleep()方法主动放弃所占用的处理器资源
+- 线程调用了一个阻塞式IO方法，在该方法返回之前，该线程被阻塞
+- 线程试图获得一个同步监视器，但该同步监视器正被其他线程所持有
+- 线程在等待某个通知
+- 程序调用了线程的suspend()方法将线程挂起
+
+当发生如下特定情况时可以解除上面的阻塞，让该线程重新进入就绪状态：
+- 调用sleep()方法的线程过来指定时间
+- 线程调用阻塞式IO方法已经返回
+- 线程成功地获得了试图取得的同步监视器
+- 线程正在等待某个通知时，其他线程发出了一个通知
+- 处于挂起的线程被调用了resume()方法
+
+![](pic16_1.png)
+
+#### 16.3.3 线程死亡
+线程会以如下3种方式结束，结束后处于死亡状态：
+- run()或call()方法执行完成，线程正常结束
+- 线程抛出一个未捕获的Exception或Error
+- 直接调用该线程的stop()方法来结束该线程——容易导致死锁，不推荐
+
+> 当主线程结束时，其他线程不受任何影响，并不会随之结束。一旦子线程启动后，它就拥有和主线程相同的地位，不受主线程影响
+
+为测试某个线程是否死亡，可调用对象的isAlive()方法，当线程处于就绪、运行、阻塞3种状态时，返回true；当线程处于新建、死亡状态时，返回false
+
+> 不要试图对一个已死亡的线程调用start()方法重新启动
+
+````
+public class StartDead extends Thread {
+    private int i;
+    public void run() {
+        for(; i < 100; i++) {
+            System.out.println(getName() + " " + i);
+        }
+    }
+
+    public static void main(String[] args) {
+        //创建线程对象
+        StartDead sd = new StartDead();
+        for(int i = 0; i < 300; i ++) {
+            //调用currentThread()获取当前线程
+            System.out.println(Thread.currentThread().getName() + " " + i);
+            if(i == 20) {
+                //启动线程
+                sd.start();
+                //判断启动后线程的isAlive()值，输出true
+                System.out.println(sd.isAlive());
+            }
+            if(i > 20 && !sd.isAlive()) {
+                //试图再次启动该线程
+                //此处会抛出IllegalThreadStateException异常
+                sd.start();
+            }
+        }
+
+    }
+}
+````
+
+### 16.4 控制线程
+#### 16.4.1 join 线程
+Thread提供了一个线程等待另一个线程完成的方法——join()方法  
+当在某个程序执行流中调用其他线程的join()方法时，调用线程被阻塞，知道被join()方法加入的join线程执行完为止
 
 
