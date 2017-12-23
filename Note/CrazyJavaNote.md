@@ -2077,5 +2077,261 @@ public class StartDead extends Thread {
 #### 16.4.1 join 线程
 Thread提供了一个线程等待另一个线程完成的方法——join()方法  
 当在某个程序执行流中调用其他线程的join()方法时，调用线程被阻塞，知道被join()方法加入的join线程执行完为止
+````
+public class JoinThread extends Thread{
+    //提供一个有参构造器，用于设置线程名字
+    public JoinThread(String name) {
+        super(name);
+    }
+    //重写run()方法
+    public void run() {
+        for(int i = 0; i < 100; i++) {
+            System.out.println(getName() + " " + i);
+        }
+    }
+    public static void main(String[] args) {
+        //启动子线程
+        new JoinThread("新线程").start();
+        for(int i = 0; i < 100; i++) {
+            if(i == 20) {
+                JoinThread jt = new JoinThread("被Join的线程");
+                jt.start();
+                //必须等jt执行结束才会向下执行
+                jt.join();
+            }
+            System.out.println(Thread.currentThread().getName() + " " + i);
+        }
+    }
+}
+````
+
+join()方法有3种重载：
+- join() 等待被join线程执行完成
+- join(long mills) 等待被join的线程的时间最长为mills毫秒
+- join(long mills, int nanos) 等待被join的线程的时间最长为mill毫秒+nano微秒
+
+#### 16.4.2 后台线程
+有一种线程，在后台运行，任务是为其他线程提供服务，被称为“后台业务”，又称守护线程或精灵线程  
+后台线程特征：如果所有前台线程死亡，后台线程自动死亡  
+调用Thread对象的setDaemon(true)方法可将指定线程设置成后台线程
+> setDaemon(true)必须在start()方法前调用
+
+#### 16.4.3 线程睡眠:sleep
+让当前线程暂停一段时间，进入阻塞状态，sleep()方法有2种重载形式:
+- static void sleep(long millis) 暂停millis毫秒
+- static void sleep(long millis, int nanos) 暂停millis毫秒+nanos微秒
+
+#### 16.4.4 线程让步 yield
+yield也是一个静态方法，可让当前正在执行的线程暂停，但不会阻塞，只是转入就绪状态  
+当某个线程用了yield()方法之后，只有优先级与当前线程相同，或比当前线程更高的处于就绪状态的线程才会获得执行机会
+````
+public class YieldTest extends Thread{
+    public  YieldTest(String name) {
+        super(name);
+    }
+    //定义run()方法
+    public void run() {
+        for(int i = 0; i < 50; i++) {
+            System.out.println(getName() + " " + i);
+            if(i == 20) {
+                Thread.yield();
+            }
+        }
+    }
+    public static void main(String[] args) throws Exception{
+        YieldTest yt1 = new YieldTest("高级");
+        //yt1.setPriority(Thread.MAX_PRIORITY);
+        yt1.start();
+        YieldTest yt2 = new YieldTest("低级");
+        //yt2.setPriority(Thread.MIN_PRIORITY);
+        yt2.start();
+    }
+}
+````
+
+> 关于sleep()方法和yield()方法区别如下:
+> - sleep()方法暂停当前线程后，会给其他线程执行机会，不理会其他线程的优先级；但yield()方法只给优先级相同或优先级更高的线程执行机会
+> - sleep()方法会将线程转入阻塞状态，直到经过阻塞时间才会转入就绪状态;yield不会将线程转入阻塞状态，它只是强制当前线程进入就绪状态
+> - sleep()方法抛出InterruptedException异常，所以调用sleep()方法时要么捕捉异常，要么显示抛出；而yield()方法没有声明抛出任何异常
+> - sleep()方法比yield()方法有更好的移植性，通常不建议使用yield()方法来控制并发线程的执行 
+
+### 16.5 线程同步
+当有两个线程并发修改同一个对象时可能会造成异常  
+引入同步监视器（同步代码块）
+````
+synchronized(obj) {
+    //此处放同步代码块
+}
+````
+obj就是同步监视器，含义是：线程开始执行同步代码块之前，必须先获得对同步监视器的锁定
+
+> 任何时刻只能有一个线程可以获得同步监视器锁定，当同步代码块执行完后，该线程会释放锁定
+
+监视器**目的**：阻止两个线程对同一个共享资源并发访问，通常推荐使用被并发访问的共享资源当作同步监视器  
+````
+public class DrawThread extends Thread {
+    private Account account;
+    private double drawAmount;
+    public DrawThread(String name, Account acount, double drawAmount) {
+        super(name);
+        this.account = account;
+        this.drawAmount = drawAmount;
+    }
+    public void run() {
+        synchronized (account) {
+            if(account.getBalance() >= drawAmount) {
+                System.out.println(getName() + "取钱成功" + drawAmount);
+                try{
+                    Thread.sleep();
+                }catch(Exception e) {
+
+                }
+                account.setBalancce(account.getBalance() - drawAmount);
+                System.out.println("\n 余额为"+ amount.getBalance());
+            }else {
+                System.out.println(getName()+ "取钱失败，余额不足");
+            }
+        }
+    }
+}
+````
 
 
+流程： 加锁 -> 修改 -> 释放锁
+
+#### 16.5.3 同步方法
+线程安全的类的特征：
+- 该类对象可被多个线程安全访问
+- 每个线程调用对象的任意方法后都可得到正确结果
+- 每个线程调用该对象任意方法后，对象状态保持合理
+
+> synchronized 关键字可修饰方法、代码块，但不能修饰构造器、属性
+````
+public synchronized void draw(double drawAmount) {
+    //
+}
+````
+可变类的线程安全是以降低程序的运行效率作为代价的  
+- 不要对所有方法都进行同步，只对会改变竞争资源的方法进行同步
+- 如果可变类有2种运行环境：单/多线程环境，则应为该可变类提供两种版本：线程安全/不安全（单线程用不安全版本保证性能，多线程使用安全版本）
+
+#### 16.5.4 释放同步监视器锁定
+解锁情况：
+- 当前线程同步方法、代码块执行结束
+- 同步方法、代码块遇到break、return
+- 当前线程在同步代码块、方法中出现Error、Exception
+- 当前线程执行了同步监视器对象的wait()方法
+
+不解锁的情况：
+- 程序调用Thread.sleep()、Thread.yield()方法
+- 其他线程调用了该线程的suspend()方法将线程挂起
+
+#### 16.5.5 同步锁（Lock）
+Lock  比 synchronized 更广泛，是控制多个线程对共享资源进行访问的工具  
+实现时，常用可重入锁 ReentrantLock，可以显示加锁、释放锁。一个线程可对已被加锁的ReentrantLock锁再次加锁，ReentrantLock 对象会维持一个计数器来追踪lock()方法的嵌套调用
+````
+class X {
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void m() {
+        lock.lock();
+        try{
+            //需要线程安全的代码
+        }finall {
+            lock.unlock();
+        }
+    }
+}
+````
+
+#### 16.5.6 死锁
+一旦出现死锁，程序不会发生异常，也不会给出提示，只是所有线程阻塞
+
+### 16.6 线程通信
+#### 16.6.1 传统线程通信
+借助 wait(), notify(), notifyAll() 3个方法
+- wait():导致当前线程等待，直到其他线程调用同步监视器的notify()或notifyAll()方法来唤醒该线程
+- notify(): 唤醒在此同步监视器上等待的单个线程
+- notifyAll():唤醒等待的所有线程
+
+#### 16.6.2 使用 Condition控制线程
+使用Condition可以让已得到Lock对象却无法继续执行的线程释放Lock对象，也可唤醒其他处于等待的线程  
+Lock代替同步方法或代码块、Condition代替了同步监视器  
+3个方法：
+- await() 导致当前线程等待，直到其他线程调用该Condition的signal()或signalAll()方法
+- signal()唤醒在此Lock对象上等待的单个线程
+- signalAll()唤醒所有线程
+
+#### 16.6.3 使用阻塞队列(BlockingQueue)控制线程通信
+两线程交替向BlockingQueue放入、取出元素
+- put(E e):尝试把E元素放入队列，如果队列已满，则阻塞
+- take():尝试从队列头部取出元素，如果队列已空，则阻塞
+
+阻塞队列有5个实现类：
+- ArrayBlockingQueue:基于数组实现
+- LinkedBlokcingQueue: 基于链表实现
+- PriorityBlockingQueue: 并不是标准阻塞队列，取出队列中最小的元素
+- SynchronousQueue: 同步队列，必须存取交替进行
+- DelayQueue：基于 PriorityBlockingQueue,要集合元素实现Delay接口，按getDelay()方法返回值排序
+
+### 16.7 线程组和未处理异常
+ThreadGroup 表示线程组，用户创建的所有线程都属于指定线程组  
+默认下，子线程和父线程属于同一线程组  
+Thread 构造器可指定新建线程属于哪个组  
+ThreadGroup(String name)：新建线程组  
+ThreadGroup 中有一个 void uncaughtException(Thread t, Throwable e)， 该方法可处理组内任意线程抛出的未处理异常  
+流程
+1. 如果该线程组有父线程组，调用父线程组uncaughtException()来处理异常
+2. 如果该线程实例所属线程类有默认的异常处理器，则调用该处理器
+3. 如果异常对象是ThreadDeath对象，则不做处理
+
+### 16.8 线程池
+线程池在系统启动时即创建大量空闲线程，程序将一个Runnable/Callable对象传给线程池，会启动一个线程来执行它们的run()或call()方法，当方法执行完，线程不死亡，而是再次返回线程池成为空闲状态，等待下一个Runnable对象的run()方法
+
+使用线程池来执行线程任务的步骤：
+1. 调用Executors类的静态工厂方法创建一个ExecutorService 对象，代表一个线程池
+2. 创建Runnable/Callable实现类，作为线程执行任务
+3. 调用ExecutorService对象的submit()方法提交Runanble/Callable实例
+4. 不想提交任务时，调用ExecutorService对象的shutdown()关闭线程池
+
+````
+class MyThread implements Runnable {
+    public void run() {
+
+    }
+}
+public class ThreadPoolTest{
+    public static void main(String[] args) throws Exception{
+        //创建一个具有固定线程数6的线程池
+        ExecutorService pool = Executor.newFixedThreadPool(6);
+        //向线程池中提交两个线程
+        pool.submit(new MyThread());
+        pool.submit(new MyThread());
+        //关闭线程池
+        pool.shutdown();
+    }
+}
+````
+
+### 16.9 线程相关类
+#### 16.9.1 ThreadLocal 类
+简化多线程编程时的并发访问，可以简洁地隔离多线程程序的竞争资源，3个public方法：
+- T get()：返回此线程局部变量中当前线程的值
+- void remove()：删除此线程局部变量当前线程的值
+- void set(T value)：设置局部变量中当前线程副本的值
+
+ThreadLocal将需要并发访问的资源复制多份，每个线程拥有一份资源，没有必要对该变量进行同步，但并不能代替同步机制
+
+> 通常：如果多个线程需要共享资源以通信 -> 同步机制； 如果仅需要隔离多个线程的冲突 -> ThreadLocal
+
+#### 16.9.2 包装线程不安全的集合
+ArrayList、LinkedList、HashSet、TreeSet、HashMap、TreeMap都是线程不安全的，可以用Collections提供的静态方法把这些集合包装成线程安全集合
+
+#### 16.9.3 线程安全集合类
+- 以Concurrent开头的集合类
+- 以CopyOnWrite开头的集合类
+
+## 17 网络编程
+
+
+## 18 类加载机制与反射
