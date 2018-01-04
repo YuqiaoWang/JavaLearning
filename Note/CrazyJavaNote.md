@@ -109,8 +109,7 @@ Field 名：第一个单词字母小写，后面每个单词首字母大写<br>
 
 static 修饰的成员不能访问没有 static 修饰的成员<br>
 构造器用于构造类的实例，通过 new 关键字来调用构造器<br>
-修饰方法的修饰符：abstract 和 final 最多只能二选一，可与 static 组合
-
+修饰方法的修饰符：abstract 和 final 最多只能二选一，(final 可与 static 组合)
 static 修饰的成员表明它属于这个类本身，而不属于该类的单个实例
 
 ### 6.1 引用
@@ -2332,6 +2331,1432 @@ ArrayList、LinkedList、HashSet、TreeSet、HashMap、TreeMap都是线程不安
 - 以CopyOnWrite开头的集合类
 
 ## 17 网络编程
+### 17.1 网络编程基础知识
+#### 17.1.1 网络基础知识
+计算机网络按规模划分为：局域网（LAN）、城域网（MAN）、广域网（WAN）  
+计算机网络中实现通信必须有的约定称为**通信协议**，负责对传输速率、传输代码、代码结构、传输控制步骤、出错控制等制定处理标准  
+通信协议由3部分组成：
+1. 语义部分，用于决定双方对话的类型
+2. 语法部分，用于决定双方对话的格式
+3. 变换规则，用于决定通信双方的应答关系
+
+OSI7层栈结构
+
+![](pic17_1.png)
+
+**IP协议**又称互联网协议，是支持网间互联的数据报协议，提供网间连接的完善功能  
+**TCP协议**，传输控制协议，规定一种可靠的数据信息传递服务  
+实际中统称TCP/IP协议  
+TCP分层模型/OSI分层模型对应关系：  
+![](pic17_2.png)
+
+
+#### 17.1.2 IP地址与端口号
+IP地址用于唯一标识网络中的一个通信实体  
+IP地址是一个32位整数，分为4个8位二进制数  
+IP地址分为A，B，C，D，E共5类
+- A: 10.0.0.0 - 10.255.255.255
+- B: 172.16.0.0 - 172.31.255.255
+- C: 192.168.0.0 - 192.168.255.255
+
+**端口**是一个16位整数，用于表示数据交给哪个通信程序处理，是应用程序与外界交流的出入口，是一种抽象的软件结构，包括一些数据结构和I/O缓冲区  
+同一机器上不能有两个程序占用同一端口，端口号可从0到65535，分为3类：
+- 公认端口：0到1023，它们紧密绑定一些特定服务
+- 注册端口：1024-49151，应用程序通常使用这个范围内的接口
+- 动态和/或私有端口：49152-65535，应用程序使用的动态端口，应用程序一般不会主动使用
+
+### 17.2 Java的基本网络支持
+Java为网络支持提供了java.net包，其中URL和URLConnection等类提供了编程方式访问Web服务和功能
+#### 17.2.1 使用 InterAddress
+Java 提供了 InetAddress来代表IP地址，有2个子类:Inet4Address、Inet6Address，分别代表IPv4和IPv6地址  
+InetAddress没有提供构造器，而是提供2个静态方法来获取InetAddress实例：
+- getByName(String host)    根据主机获取InetAddress对象
+- getByAddress(byte[] addr) 根据原始IP地址来获取InetAddress对象
+
+也提供3个方法获取实例对应IP地址和主机名:
+- getCanonicalHostName()    获取全限定域名
+- getHostAddress()          返回IP地址字符串
+- getHostName()             获取主机名
+
+还有一个getLocalHost()方法，获取本机IP地址对应的InetAddress实例
+
+#### 17.2.2 使用 URLDecoder 和 URLEncoder
+完成普通字符串和 application/x-www-form-urlencoded MIME 字符串之间的相互转换  
+URLDecoder 类包含一个decoded(String s, String enc) 静态方法，可以将看上去是乱码的特殊字符转成普通字符  
+URLEncoder 类包含一个 encoder(String s, String enc) 静态方法，将普通字符串转为 MIME 字符串
+````
+public clcass URLDecoderTest {
+    public static void main(String[] args) throw Exception{
+        String keyWord = URLDecoder.decode("%B7%E8%BF%F1java", "GBK");
+        System.out.println(keyWord);
+        String urlStr = URLEncoder.encode("疯狂Andriod讲义", "GBK");
+        System.out.println(urlStr);
+    }
+}
+````
+### 17.2.3 使用URL和URLConnection
+URL（Uniform Resource Locator）对象代表同一资源定位器，指向互联网资源的指针，资源可以是简单的文件或目录，也可以是复杂对象的引用  
+URL可以由协议名、主机、端口和资源组成
+````
+protocal://host:port/resourceName
+````
+> JDK 中还提供一个URI(Uniform Resource Identifiers)类，它的实例代表一个同一资源标识符，URI不用于资源定位，它的唯一作用就是解析  
+> URL 则包含一个可打开到达该资源的输入流，URL可理解为URI的特例
+
+URL类提供多个构造器，获得URL对象后，可访问URL对应资源：
+- getFile()     获取资源名
+- getHost()     获取主机名
+- getPath()     获取路径部分
+- getPort()     获取端口号
+- getProtocol() 获取协议名称
+- getQuery()    获取查询字符串部分
+- openConnection()  返回URLConnection对象，代表与URL所引用的远程对象连接
+- openStream()      打开与此URL的连接，并返回一个用于读取该URL资源的InputStream
+
+通常创建一个和URL的连接，并发送请求、读取此URL引用的资源需要如下几个步骤：
+1. 通过调用URL对象的openConnection()方法来创建URLConnection对象
+2. 设置URLConnection的参数和普通请求属性
+3. 如果只是发送GET方式请求，则使用connect()方法建立和远程资源之间的实际连接即可；如果发送POST方式的请求，则需获取URLConnection实例对应的输出流来发送请求参数
+4. 远程资源变为可用，程序可以访问远程资源的头字段或输入流读取远程资源的数据
+
+在建立和远程资源的实际连接之前，可通过如下方法设置请求头字段：
+- setAllowUserInteraction()
+- setDoInput()
+- setDoOutput()
+- setIfModifiedSince()
+- setUseCaches()
+
+除此之外，还可使用如下方法设置或增加通用头字段：
+- setRequestProperty(String key, String value)  设置该URLConnection的key请求头字段的值为value
+- addRequestProperty(String key, String value)  为该URLConnecntion的key请求头字段增加value值，不会覆盖原请求头字段的值，而是将新值追加到原请求头字段中
+
+远程资源可用后，可使用以下方法来访问头字段和内容：
+- getContent()
+- getHeaderFiled(String name)
+- getInputStream()
+- getOutputStream()
+- getContentEncoding()
+- getContentLength()
+- getContentLength()
+- getContentType()
+- getDate()
+- getExpiration()
+- getLastModifiend()
+
+下例展示如何向Web站点发送GET请求、POST请求，并从Web站点取得响应
+````
+public class GetPostTest{
+    /**
+    * 向指定URL发送GET方式请求
+    * @param url 发送请求的URL
+    * @param param 请求参数，格式满足 name1=value1&name2=value2的形式
+    * @return URL代表远程资源的响应
+    */
+    public static String sendGet(String url, String param) {
+        String result = "";
+        String urlName = url + "?" + param;
+        try{
+            URL realURL = new URL(urlName);
+            //打开和URL之间的连接
+            URLConnection conn = realURL.openConnection();
+            //设置通用的请求属性
+            conn.setRequestProperty("accept", "*/*");
+            conn.setRequestProperty("connection", "Keep-Alive");
+            conn.setRequestProperty("user-agent", 
+                "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)");
+            //建立实际的连接
+            conn.connect();
+            //获取所有的响应头字段
+            Map<String, List<String>> map = conn.getHeaderFields();
+            //遍历所有响应头字段
+            for(String key : map.keySet()) {
+                System.out.println(key + "--->" + map.get(key));
+            }
+            try{
+                //定义BufferedReader输入流来读取URL的响应
+                BufferedReader in = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), "utf-8"));
+                String line;
+                while((line = in.readLine()) != null) {
+                    result += "\n" + line;
+                }
+            }
+        }catch(Exception e) {
+            System.out.println("发送GET请求出现异常！" + e);
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    /**
+    * 向指定URL发送POST方式的请求
+    * @param url 发送请求的URL
+    * @param param 请求参数，格式应该满足 name1=value1&name2=value2的形式
+    * @return URL代表远程资源的响应
+    **/
+    public static String sendPost(String url, String parm) {
+        String result = "";
+        try{
+            URL realURL = new URL(url);
+            //打开和URL之间的连接
+            URLConnection conn = realURL.openConnecntion();
+            //设置通用的请求属性
+            conn.setRequestProperty("accept", "*/*");
+            conn.setRequestProperty("connecntion", "Keep-Alive");
+            conn.setRequestProperty("user-agent", 
+                "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)");
+            //发送POST请求必须设置如下两行
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            try{
+                //获取URLConnection对象对应的输出流
+                PrintWriter out = new PrintWriter(conn.getOutputStream());
+                //发送请求参数
+                out.print(param);
+                //flush输出的缓冲
+                out.flush();
+            }
+            try{
+                //定义BufferedReader输入流来读取URL的响应
+                BufferedReader in = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), "utf-8"));
+                String line;
+                while((line = in.readLine()) != null) {
+                    result += "\n" + line;
+                }
+            }
+        }catch(Exception e) {
+            System.out.println("发送POST请求出现异常！" + e);
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+    public static void main(String[] args) {
+        //发送GET请求
+        String s = GetPost.sendGet("http://localhost:8888/abc/a.jsp", null);
+        System.out.println(s);
+        //发送POST请求
+        String s1 = GetPost.sendPost("http://localhost:8888/abc/login.jsp", "name=crazyit.org&pass=leegang");
+        System.out.println(s1);
+    }
+}
+````
+上面程序中发送GET请求时只需将请求参数放在 URL 字符串之后，以"?"隔开，程序直接调用URLConnection对象的connect()方法即可  
+如果程序要发送POST请求，则需先设置doIn和doOut两个请求头字段的值，再使用URLConnection 对应的输出流来发送请求参数  
+无论GET/POST请求，程序获取URLConnection响应的方式一样：如果可确定远程响应是字符流，则使用字符流来读取；如果无法确定，则用字节流读取
+
+### 17.3 基于TCP协议的网络编程
+TCP/IP通信协议在通信两端各建立一个Socket，从而在通信的两端之间形成网络虚拟链路，两端程序可通过虚拟链路通信  
+Java对基于TCP协议的网络通信提供了良好的封装，Java使用Socket对象来代表两端的通信端口，并通过Socket产生IO流来进行通信
+#### 17.3.1 TCP协议基础
+IP协议负责将消息从一个主机传送到另一个主机，消息在传送过程中被分割成一个个小包  ，但IP协议不能解决数据分组在传输过程中可能出现的问题  
+TCP协议是端到端协议，当一台主机与另一台主机连接时，TCP协议会让它们建立一个连接:用于发送和接收数据的虚拟链路。TCP协议负责收集信息包，按适当次序放好发送，接收端收到后正确还原  
+TCP使用丢包重发机制  
+![](pic17_3.png)
+
+上图显示了TCP协议控制两个通信实体互相通信的示意图  
+
+#### 17.3.2 使用ServerSocket 创建 TCP 服务端
+在两个通信实体没有建立虚拟链路之前，必须有一个通信实体先做Server，主动接收其他通信实体的连接请求  
+Java能接收其他通信实体连接请求的类是ServerSocket,ServerSocket对象用于监听来自客户端的Socket连接，如果没有连接，则处于等待状态  
+ServerSocket包含一个监听来自客户端连接请求的方法：
+- Socket accept():如果收到一个客户端Socket连接请求，该方法返回一个与客户端Socket对应的Socket；否则一直等待，线程阻塞
+
+Socket 构造器：
+- ServerSocket(int port) 用指定端口来创建一个ServerSocket
+- ServerSocket(int port, int backlog) 增加一个改变队列长度的参数
+- ServerSocket(int port, int backlog, InetAddress localAddr) 在机器存在多IP地址情况下，指定ServerSocket绑定指定IP地址
+
+当ServerSocket 使用完毕后，使用close()方法来关闭ServerSocket  
+通常情况下，服务器不断接收来自客户端的请求
+````
+ServerSocket ss = new ServerSocket(30000);
+while(true) {
+    //每当接收到客户端Socket请求，服务器端就对应产生一个Socket
+    Socket s = ss.accept();
+    //下面可以使用Socket通信了
+}
+````
+#### 17.3.3 使用Socket进行通信
+客户端使用Socket构造器来连接到指定服务器
+- Socket(InetAddress/String remoteAddress, int port) 创建连接到指定远程主机、远程端口的Socket
+- Socket(InetAddress/String remoteAddress, int port, InetAddress localAddr, int localPort) 适用于本地主机多IP地址的情形
+
+````
+Socket s = new Socket("127.0.0.1", 30000);
+````
+执行上面代码，连接到指定服务器，让服务器的ServerSocket的accept()方法向下执行，建立一对Socket
+
+Socket提供如下输入输出流：
+- InputStream getInputStream()  用于从Socket中读取数据
+- OutputStream getOutputStream()    用于向Socket中输出数据
+
+下例建立ServerSocket监听，并使用输出流输出
+````
+public class Server {
+    public static void main(String[] args) throws IOException{
+        //创建一个ServerSocket，用于监听客户端Socket连接请求
+        ServerSocket ss = new ServerSocket(30000);
+        while(true) {
+            //每接收一个客户端Socket请求，服务器也对应产生一个Socket
+            Socket s = ss.accept();
+            //将Socket对应的输出流包装成PrintStream
+            PrintStream ps = new PrintStream(s.getOutputStream());
+            ps.println("您好，您收到了服务器的新年祝福!");
+            //关闭输出流，关闭Socket
+            ps.close();
+            s.close();
+        }
+    }
+}
+````
+下例客户端使用Socket建立与指定IP地址、指定端口的连接，并使用Socket获取输入流读取数据
+````
+public class Client {
+    public static void main(String[] args) throws IOException {
+        Socket socket = new Socket("127.0.0.1", 30000);
+        //将Socket对应输入流包装成BufferedReader
+        BufferedReader br = new BufferedReader(
+            new InputStreamReader(socket.getInputStream()));
+        String line = br.readLine();
+        System.out.println("来自服务器的数据" + line);
+        br.close();
+        socket.close();
+    }
+}
+````
+
+可以设置超时时间,当网络连接、读取操作超时报SocketTimeoutException 异常
+````
+Socket s = new Socket("127.0.0.1", 30000);
+s.setSoTimeout(10000);
+````
+假设程序需要为Socket连服务器时指定超时时长，但Socket所有构造器没有提供超时时长参数，所以程序应先创建一个无连接的Socket，在调用Socket的connect()方法来连接远程服务器，而connect()方法可接收一个超时时长参数
+````
+//创建一个无连接的Socket
+Socket s = new Socket();
+//让该Socket连接到远程服务器，若10s未连接，则认为超时
+s.connect(new InetAddress(host, posr), 10000);
+````
+#### 17.3.4 加入多线程
+实际客户端可能需要和服务器保存长时间通信，即服务器端需要不断读取客户端数据，并向客户端写入数据；客户端需要不断读取服务器数据，并向服务器写入数据  
+服务器端应为每个Socket 单独开启一个线程，每个线程负责与一个客户端通信  
+在服务器端使用List来保存所有Socket
+
+下面是服务器端代码，共2个类，一个创建ServerSocket监听，一个负责处理每个Socket通信的线程类
+````
+public class MyServer {
+    public static ArrayList<Socket> socketList = new ArrayList<>();
+    public static void main(String[] args) throws IOException{
+        ServerSocket ss = new ServerSocket(30000);
+        while(true) {
+            //此行代码会阻塞，等待连接
+            Socket s = ss.accept();
+            socketList.add(s);
+            //每当客户端连接后启动一个ServerThread线程为该客户端服务
+            new Thread(new ServerSocket(s)).start();
+        }
+    }
+}
+````
+每当客户端Socket连接到该ServerSocket之后，程序将对应Socket放入集合并为该Socket启动一个线程，负责处理该Socket所有通信任务
+````
+public class ServerThread implements Runnable {
+    Socket s = null;
+    //该线程处理Socket的对应输入流
+    BufferedReader br = null;
+    public ServerThread(Socket s) throws IOException{
+        this.s = s;
+        //初始化输入流
+        br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+    }
+    public void run() {
+        try{
+            String content = null;
+            //不断从Socket读取客户端发来的数据
+            while((content = readFromClient()) != null) {
+                //遍历每个Socket
+                //将读到的内容向每个Socket发送一次
+                for(Socket s : MyServer.socketList) {
+                    PrintStream ps = new PrintStream(s.getOutputStream());
+                    ps.println(content);
+                }
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+    //定义读取客户端数据的方法
+    private String readFromClient() {
+        try{
+            return br.readLine();
+        }catch(Exception e) {
+            Myserver.socketList.remove(s);
+        }
+        return null;
+    }
+}
+````
+当服务器线程读到客户端数据后，遍历socketList集合，并将该数据向socketList集合中的每个Socket发送一次  
+每个客户端包含2个线程，一个负责读取用户的键盘输入，并将输入数据写入Socket对应输出流中，一个负责读取Socket对应输入流，并将之打印输出
+````
+public class MyClient{
+    public static void main(String[] args) throws Exception{
+        Socket s = new Socket("127.0.0.1", 30000);
+        //客户端启动ClientThread线程不断读取来自服务器的数据
+        new Thread(new ClientThread(s)).start();
+        PrintStream ps = new PrintStream(s.getOutputStream());
+        String line = null;
+        BufferedReader br = new BufferedReader(
+            new InputStreamReader(System.in));
+        while((line = br.readLine()) != null) {
+            ps.println(line);
+        }
+    }
+}
+````
+
+````
+public class ClientThread implements Runnable {
+    //该线程负责处理的Socket
+    private Socket s;
+    //该线程所处理的Socket 对应输入流
+    BufferedReader br = null;
+    public ClientThread(Socket s) throws IOException{
+        this.s = s;
+        br = new BufferedReader(
+            new InputStreamReader(s.getInputStream()));
+    }
+
+    public void run() {
+        try{
+            String content = null;
+            while((content = br.readLine()) != null) {
+                System.out.println(content);
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+````
+
+先运行MyServer类，作为服务器，看不到输出；再运行多个MyClient，相当于启动多个聊天室客户端登陆该服务器，粗劣实现C/S结构聊天室功能
+
+#### 17.3.5 记录用户信息
+当客户端使用Socket连接到服务器端后，只使用socketList集合保存了服务器对应生成额度Socket，并没有保存该Socket关联的客户信息  
+下面考虑使用Map来保存用户信息，实现私聊，即一个客户端发送给另一个指定客户端，需要解决：
+- 客户端发来的信息必须有特殊标识——公聊/私聊
+- 若是私聊，服务端如何将该信息发给指定私聊对象
+
+可以考虑使用一个Map保存所有用户和对应Socket之间的映射关系,本例仅用Map保存用户名和对应输出流之间的映射关系
+````
+public class Server {
+    private static final int SERVER_PORT = 30000;
+    public static HashMap<String, PrintStream> clients = new HashMap<>();
+    public void init() {
+        try{
+            //建立监听的ServerSocket
+            ServerSocket ss = new ServerSocket(SERVER_PORT);
+            while(true) {
+                Socket socket = ss.accept();
+                new ServerThread(socket).start();
+            }
+        }catch(IOException e) {
+            System.out.println("服务器启动失败，是否端口" + SERVER_PROT + "已被占用?");
+        }
+    }
+    public static void main(String[] args) {
+        Server server = new Server();
+        server.init();
+    }
+}
+````
+上述代码关键工作：建立ServerSocket,监听客户端Socket连接请求，为已连接Socket启动单独线程  
+服务器线程类要分别处理公聊/私聊信息，还要处理用户名是否重复的问题
+````
+public class ServerThread extends Thead {
+    private Socket socket;
+    //该线程所处理的Socket 对应输入流
+    BufferedReader br = null;
+    PrintStream ps = null;
+    Public ServerThread(Socket socket) {
+        this.socket = socket;
+    }
+
+    public void run() {
+        try{
+            br = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
+            ps = new PrintStream(socket.getOutputStream());
+            String line = null;
+            while((line = br.readLine()) != null) {
+                //如果读到的行是用户登陆的用户名
+                if(line.startsWith(CrazyitProtocol.USER_ROUND) && 
+                    line.endsWith(CrazyitProtocol.USER_ROUND)) {
+                    String userName = getRealMsg(line);
+                    if(Server.clients.containskey(userName)) {
+                        System.out.println("重复");
+                        ps.println(CrazyitProtocal.NAME_REP);
+                    }else {
+                        System.out.println("成功");
+                        ps.println(CrazyitProtocol.LoGIN_SUCCESS);
+                        Server.clients.put(userName, ps);
+                    }
+                }
+                // 如果读到的行是私聊信息，只向特定输出流发送
+                else if(line.startsWith(CrazyitProtocol.PRIVATE_ROUND) && 
+                    line.endsWith(CrazyitProtocol.PRIVATE_ROUND)) {
+                    String userAndMsg = getRealMsg(line);
+                    String user = userAndMsg.split(
+                        CrazyitProtocol.SPLIT_SIGN)[0];
+                    String msg = userAndMsg.split(
+                        CrazyitProtocol.SPLIT_SIGN)[1];
+                    Server.clients.get(user).println(Server.clients.getKeyByValue(ps) + "悄悄地对你说" + msg);
+                }
+                //公聊向每个Socket发送
+                else {
+                    //得到真实信息
+                    String msg = getRealMst(line);
+                    for(PrintStream clientPs : Server.clients.valueSet()) {
+                        clientPs.println(Server.clients.getKeyValue(ps) + "说：" + msg);
+                    }
+                }
+            }
+        }
+        //出问题表明Socket对应的客户端已出现了问题，应从Map中删除
+        catch(Exception e) {
+            Server.clients.removeByValue(ps);
+            System.out.println(Server.clients.size())
+            try{
+                if(br != null) {
+                    br.close();
+                }
+                if(ps != null) {
+                    ps.close();
+                }
+                if(socket != null) {
+                    socket.close();
+                }
+            }catch(IOException e) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private String getRealMsg(String line) {
+        return line.substring(CrazyitProtocol.PROTOCOL_LEN, line.length() - CrazyitProtocol.PROTOCOL_LEN);
+    }
+}
+````
+客户端增加了让用户输入用户名/密码，且不允许用户名重复；还可根据用户输入来判断用户是否发送私聊/公聊信息
+````
+public class Client{
+    private static final int SERVER_PORT = 30000;
+    private Socket socket;
+    privte PrintStream ps;
+    private BufferedReader brServer;
+    priavte BufferedReader keyIn;
+
+    public void init() {
+        try{
+            //初始化代表键盘的输入流
+            keyIn = new BufferedReader(new InputStreamReader(System.in));
+            //连接到服务器端
+            socket = new Socket("127.0.0.1", SERVER_PORT);
+            //获取该Socket对应的输入流和输出流
+            ps = new PrintStream(socket.getOutputStream());
+            brServer = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
+            String tip = "";
+            //采用循环不断地弹出对话框要求输入用户名
+            while(true) {
+                String userName = JoptionPane.showInputDialog(tip + "输入用户名");
+                //在用户输入的用户名前后增加协议字符串后发送
+                ps.println(CrazyitProtocol.USER_ROUND + userName + 
+                    CrazyitProtocol.USER_ROUND);
+                String result = brServer.readLine();
+                //如果用户名重复，开始下次循环
+                if(result.equals(CrazyitProtocol.NAME_REP)) {
+                    tip = "用户名重复！请重新";
+                    continue;
+                }
+                //若服务器端返回登陆成功，结束循环
+                if(result.equals(CrazyitProtocol.LOGIN_SUCCESS)) {
+                    break;
+                }
+            }
+        }
+        //捕获异常，关闭网络资源，退出程序
+        catch(UnknownHostExcpetion ex) {
+            System.out.println("找不到远程服务器，请确定服务器已启动");
+            closeRs();
+            System.exit(1);
+        }
+        //以该Socket对应的输入流启动ClientThread线程
+        new ClientThread(brServer).start();
+    }
+    private void readAndSend() {
+        try{
+            //不断读取键盘输入
+            String line = null;
+            while((line = keyIn,readLine()) != null) {
+                //如果发送的信息中有冒号，且以/开头，则认为想发送私聊信息
+                if(line.indexOf(":") > 0 && line.startsWith("/")) {
+                    line = line.substring();
+                    ps.println(CrazyitProtocol.PRIVATE_ROUND + 
+                        line.split(":")[0] + CrazyitProtocol.SPLIT_SIGN + 
+                        line.split(":")[1] + CrazyitProtocol.PRIVATE_ROUND);
+                }else {
+                    ps.println(CrazyitProtocol.MSG_ROUND + line + CrazyitProtocol.MSG_ROUND);
+                }
+            }
+        }catch(IOException e) {
+            System.out.println("网络通信异常！请求重新登录！");
+            closeRs();
+            System.exit(1);
+        }
+    }
+    private void closeRs() {
+        try{
+            if(keyIn != null) {
+                ps.close();
+            }
+            if(brServer != null) {
+                ps.close();
+            }
+            if(ps != null) {
+                ps.close();
+            }
+            if(socket != null) {
+                keyIn.close();
+            }
+        }catch(IOException e) {
+            e.printStacktTrace();
+        }
+    }
+    public void main(String[] args) {
+        Client client = new Client();
+        client.init();
+        client.readAndSend();
+    }
+}
+````
+
+````
+public class ClientThread extends Thread {
+    //该客户端线程负责处理的输入流
+    BufferedReader br = null;
+    
+    public ClientThread(BufferedReader br) throws IOException{
+        this.br = br;
+    }
+
+    public void run() {
+        try{
+            String content = null;
+            while((content = br.readLine()) != null) {
+                System.out.println(content);
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+        }finally {
+            try{
+                if(br != null) {
+                    br.close();
+                }
+            }catch( IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+}
+````
+
+#### 17.3.6 半关闭的Socket
+在网络通信中不能通过关闭输出流来表示输出已结束，因为关闭输出流时，该输出流对应的Socket也随之关闭，导致程序无法再从该Socket输入流中读取数据  
+Socket提供2个半关闭方法，只关闭Socket输入流或输出流，用以表示输出数据已发送完成
+- shutdownInput():关闭该Socket的输入流，程序还可通过该Socket的输出流输出数据
+- shutdownOutput():关闭输出流
+
+> 即使同一个Socket实例先后调用shutdownInput()、shutdownOutput()方法，该实例依然没有被关闭，只是Socket不能输出也不能读取数据
+
+````
+public class Server {
+    public static void main(String[] args) throws Exception{
+        ServerSocket ss = new ServerSocket(30000);
+        Socket socket = ss.accept();
+        PrintStream ps = new PrintStream(socket.getOutputStream());
+        ps.println("服务器第一行数据");
+        ps.println("服务器第一行数据");
+        //关闭socket输出流，表明输出数据已结束
+        socket.shutdownOutput();
+        //返回false，表明socket未关闭
+        System.out.println(socket.isClosed());
+        Scanner scan = new Scanner(socket.getInputStream());
+        while(scan.hasNextLine()) {
+            System.out.println(scan.nextLine());
+        }
+        scan.close();
+        socket.close();
+        ss.close();
+    }
+}
+````
+当关闭输入流/输出流后，该Socket无法再次打开输出/输入流，因此不适合保持持久通信状态的交互式应用，只适用于一站式的通信协议，如HTTP：客户端连接到服务器后，开始发送请求数据，发送完成后无须再次发送，只需要读取服务器响应，读取完后，Socket连接关闭
+
+### 17.3.7 使用NIO实现非阻塞Socket通信
+使用NIO API则可让服务器使用一个或几个线程来同时处理连接到服务器端的所有客户端  
+NIO为非阻塞式Socket通信提供几个特殊类：
+- Selector 是SelectableChannel 对象的多路复用器，所有希望采用非阻塞式通信的Channel都应注册到Selector对象.通过调用此类的open()静态方法来创建Selector实例  
+
+Selector可同时监控多个SelectableChannel的IO状况，是非阻塞IO的核心，一个Selector实例有3个SelectionKey集合
+- 所有的SelectionKey集合：代表了注册在该Selector上的Channel，这个集合可通过keys()方法返回
+- 被选择的SelectionKey集合：代表了所有可通过select()方法获取的、需要进行IO处理的Channel，这个集合可通过selectedKeys()返回
+- 被取消的SelectionKey集合：代表了所有被取消注册关系的Channel,在下一次执行select()方法时，这些Channel对应的SelectionKey会被彻底删除
+
+Seletor 还提供了一系列和select()相关的方法
+- select()：监控所有注册的Channel,当它们有需要处理IO操作时，该方法返回，并将对应SelecitonKey加入被选择的SelectionKey集合中，方法返回Channel数量
+- selectNow() 立即返回，不会阻塞线程
+
+SelectableChannel 代表可支持非阻塞IO操作的Channel对象，可被注册到Selector上，这种注册关系由SelectionKey表示  
+调用SelectableChannel的register()方法将其注册到指定Selector上，当该Selector上的某些SelectableChannel上有需要处理的IO操作时，可调用Selector实例的select()方法获取它们的数量，并通过selectedKeys()方法返回它们对应的SelectionKey集合————通过该集合可获取所有需要进行IO处理的SelectableChannel集  
+SelectedChannel对象支持阻塞和非阻塞两种模式，必须使用非阻塞模式才可利用非阻塞IO操作
+- SelectableChannel configureBlocking(boolean block):设置是否采用阻塞模式
+- boolean isBlocking()返回该Channel是否阻塞
+
+- SelectionKey: 该对象代表SelectableChannel和Selector之间的注册关系
+- ServerSocketChannel 支持非阻塞操作，对应于java.net.ServerSocket类
+- SocketChannel:支持非阻塞操作，对应于java.net.Socket类，支持OP_CONNET、OP_READ和OP_WRITE操作，还实现了ByteChannel接口、ScatteringByteChannel接口和GatheringByteChannel接口，可直接通过SocketChannel来读写ByteBuffer对象
+
+![](pic17_4.png)
+
+上图显示了NIO的非阻塞式服务器示意图,服务器上所有Channel(包括ServerSocketChannel和SocketChannel)都需要向Selector注册，该Selector则负责监视这些Socket的IO状态，当其中一个或多个Channel具有可用IO操作时，该Selector的select()方法会返回大于0的整数，表示该Selector上有多少个Channel具有可用IO造作，并提供selectedKeys()方法返回这些Channel对应的SelectionKey集合
+> 当所有Channel都没有要处理的IO时，select()方法阻塞，调用该方法的线程阻塞
+
+使用ServerSocketChannel监听客户端请求时，必须先调用它的open()方静态法返回一个ServerSocketChannel实例，再使用它的bind()方法指定它在某个端口监听
+````
+//通过open方法打开一个未绑定ServerSocketChannel实例
+ServerSocketChannel server = ServerSocketChannel.open();
+InetSocketAddress isa = new InetSocketAddress("127.0.0.1", 30000);
+//将该ServerSocketChannel绑定到指定IP地址
+server.bind(isa);
+````
+设置Server的非阻塞模式，将其注册到指定Selector
+````
+//设置ServerSocket以非阻塞方式工作
+server.configureBlocking(false);
+//将server注册到指定Selector对象
+server.register(selector, SelectionKey.OP_ACCEPT);
+````
+经上述步骤后，该ServerSocketChannel可接收客户端的连接请求，但需要调用select()方法来监听所有Channel上的IO操作
+
+````
+public class NServe{
+    //用于检测所有Channel状态的Selector
+    private Selector selector = null;
+    static final int PORT = 30000;
+    //定义实现编码、解码的字符集对象
+    private Charset charset = Charset.forName("UTF-8");
+    public void init() throws IOException {
+        selector = Selector.open();
+        //通过open方法打开一个未绑定的ServerSocketChannel实例
+        ServerSocketChannel server = ServerSocketChannel.open();
+        InetSocketAddress isa = new InetSocketAddress("127.0.0.1", PORT);
+        //将该ServerSocketChannel绑定到指定IP地址
+        server.bind(isa);
+        //设置ServerSocket以非阻塞方式工作
+        server.configureBlocking(false);
+        //将server注册到指定Selector对象
+        server.register(selector, SelectionKey.OP_ACCEPT);
+        while(selector.select() > 0) {
+            //依次处理selector上的每个已选择的SelectionKey
+            for(SelectionKey sk : selector.selectedKeys()) {
+                //从已选择Key集中删除正在处理的SelectionKey
+                seletor.selectedKeys().remove(sk);
+                //如果sk对应的Channel包含客户端连接请求
+                if(sk.isAcceptable()) {
+                    //调用accept方法接受连接，产生服务器端SocketChannel
+                    SocketChannel sc = server.accept();
+                    //设置非阻塞模式
+                    sc.configureBlocking(false);
+                    //将该SocketChannel也注册到selector
+                    sc.register(selector, SelectionKey.OP_READ);
+                    //将sk对应的Channel设置成准备接收其他请求
+                    sk.interestOps(SelectionKey.OP_ACCEPT);
+                }
+                //如果sk对应的Channel有数据需要读取
+                if(sk.isReadable()) {
+                    //获取该SelectionKey对应的Channel,该Channel中有可读数据
+                    SocketChannel sc = (SocketChannel) sk.channel();
+                    //定义准备执行读取数据的ByteBuffer
+                    ByteBuffer buff = ByteBuffer.allocate(1024);
+                    String content = "";
+                    //开始读取数据
+                    try{
+                        while(sc.read(buff) > 0) {
+                            buff.flip();
+                            content += charset.decode(buff);
+                        }
+                        //打印从该sk对应的Channel里读取到的数据
+                        System.out.println("读取的数据:" + content);
+                        //将sk对应的Channel 设置成准备下一次读取
+                        sk.interestOps(SelectionKey.OP_READ);
+                    }
+                    //如果捕获到该sk对应的Channel出现了异常，即表明该Channel
+                    //对应的Client出现了问题，所以从Selector中取消sk的注册
+                    catch(Exception ex) {
+                        sk.cancel();
+                        if(sk.channel() != null) {
+                            sk.channel().close();
+                        }
+                    }
+                    //如果content长度大于0，即聊天信息不为空
+                    if(content.length() > 0) {
+                        //遍历该selector里注册的所有SelectionKey
+                        for(SelectionKey key : selector.keys()) {
+                            //获取该key对应的Channel
+                            Channel targetChannel = key.channel();
+                            //如果该Channel是SocketChannel对象
+                            if(targetChannel instanceof SocketChannel) {
+                                //将读到的内容写入该Socket中
+                                SocketChannel dest = (SocketChannel)targetChannel;
+                                dest.write(charset.encode(content));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    public static void main(String[] args) throws Excpetion{
+        new NServer().init();
+    }
+}
+````
+上面程序启动时建立了一个可监听连接请求的ServerSocketChannel,并将该Channel注册到指定的Selector，接着程序直接采用循环不断地监控Selector对象的select()方法返回值，当返回值大于0时，处理该Selector上所有被选择的SelectionKey  
+开始处理指定的SelectionKey之后，立即从该Selector上被选择的SelectionKey集合中删除该SelectionKey  
+服务器端的Selector仅需监听2种操作：连接和读数据，所以程序中分别处理这2种操作：处理连接操作时，只需将连接完成后产生的SocketChannel注册到指定的Selector对象即可；处理读数据操作时，系统先从该Socket中读取数据，再将数据写入Selector上注册的所有Channel中
+
+客户端需要2个线程，一个负责读取用户键盘输入，并将输入内容写入SocketChannel中；另一个线程则不断查询Selector对象的select()返回值，如果返回值大于0，说明程序需要对相应的Channel执行IO处理
+
+> 使用NIO来实现服务器端时，无须使用List来保存服务器端所有SocketChannel，因为所有SocketChannel都已注册到指定Selector对象。另外，当客户端关闭时会导致服务器端对应Channel抛出异常，所以程序捕获这种异常，并在处理异常时从Selector中删除异常Channel的注册
+````
+public class NClient {
+    private Selector selector = null;
+    static final int PORT = 30000;
+    //定义处理编码和解码的字符集
+    private Charset charset = Charset.forName("UTF-8");
+    //客户端SocketChannel
+    private SocketChannel sc = null;
+    public void init() throws IOException {
+        selector = Selector.open();
+        InetSocketAddress isa = new InetSocketAddress("127.0.0.1", PORT);
+        //调用open静态方法创建连接到指定主机的SocketChannel
+        sc = SocketChannel.open(isa);
+        //设置该sc以非阻塞方式工作
+        sc.configureBlocking(false);
+        //将SocketChannel对象注册到指定的Selector
+        sc.register(selector, SelectionKey.OP_READ);
+        //启动读取服务器端数据的线程
+        new ClientThread().start();
+        //创建键盘输入流
+        Scanner scan = new Scanner(System.in);
+        while(scan.hasNextLine()) {
+            //读取键盘输入
+            String line = scan.nextLine();
+            //将键盘输入的内容输出到SocketChannel中
+            sc.write(charset.encode(line));
+        }
+    }
+
+    //定义读取服务器端数据的线程
+    private class ClientThread extends Thread {
+        public void run() {
+            try{
+                while(selector.select() > 0) {
+                    //遍历每个有可用IO操作的Channel对应的SelectionKey
+                    for(SelectionKey  sk : selector.selectedKeys()) {
+                        selector.selectedKeys().remove(sk);
+                        //如果该SelectionKey对应的Channel中有可读数据
+                        if(sk.isReadable()) {
+                            //使用NIO读取Channel中的数据
+                            SocketChannel sc = (SocketChannel) sk.channel();
+                            ByteChannel buff = ByteBuffer.allocate(1024);
+                            String content = "";
+                            while(sc.read(buff) > 0) {
+                                sc.read(buff);
+                                buff.flip();
+                                content += charset.decode(buff);
+                            }
+                            //打印输出读取的内容
+                            System.out.println("聊天信息" + content);
+                            //为下一次读取做准备
+                            sk.interesteOps(SelectionKey.OP_READ);
+                        }
+                    }
+                }
+            }catch(IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        public static void main(String[] args) thrwos IOException{
+            new NClient().init();
+        }
+    }
+}
+````
+客户端只有一个SocketChannel，将该SocketChannel注册到指定Selector后，程序启动另一个线程来监听该Selector即可。如果程序监听到该Selector的select()方法返回值大于0，就表明该Selector上有需要进行IO处理的Channel，接着程序取出该Channel，并使用NIO读取该Channel中的数据
+
+#### 17.3.8 使用AIO实现非阻塞通信
+基于异步Channel的IO机制(Asynchronous IO)  
+> IO可分为同步IO和异步IO。对于IO操作可分为2步：1. 程序发出IO请求； 2. 完成实际IO操作。   
+>前面介绍的阻塞/非阻塞都是根据第1步划分的，如果同时发出IO请求会阻塞线程，则为阻塞IO，反之为非阻塞IO。  
+>同步和异步区别在第2步：如果实际IO操作由操作系统完成，再将结果返回给应用程序，就是异步IO；如果实际IO需要应用程序本身去执行，会阻塞线程，就是同步IO。前面介绍的都是同步IO
+
+NIO2 提供了一系列以Asychronous开头的Channel类和接口，NIO2为AIO提供了2个接口和3个实现类，其中AsychronousSocketChannel、AsychronousServerSocketChannel是支持TCP通信的异步Channel
+
+使用AsychronousServerSocketChannel需要3步：
+1. 调用它的open()静态方法创建一个未监听端口的AsychronousServerSocketChannel
+2. 调用AsychronousServerSocketChannel的bind()方法指定该Channel在指定地址、指定端口监听
+3. 调用AsychronousServerSocketChannel的accept()方法接受连接请求
+
+AsychronousSocketChannel用法份3步：
+1. 调用open()静态方法创建一个AsychronousSocketChannel
+2. 调用AsychronousSocketChannel的connet()方法连接到指定IP地址、指定端口的服务器
+3. 调用AsychronousSocketChannel的read()、write()方法进行读写
+
+### 17.4 基于UDP协议的网络编程
+UDP协议是一种不可靠的网络协议，它在通信实例的两端各建立一个Socket，但这连个Socket之间并没有虚拟链路，这两个Socket只是发送、接收数据报的对象  
+Java提供了DatagramSocket对象作为基于UDP协议的Socket，用DatagramPacket代表DatagramSocket发送、接收的数据报
+
+#### 17.4.1 UDP协议基础
+ - UDP协议是网络传输层协议，在一些实用性强的场景中（网络游戏、视频会议）适用  
+ - UDP协议是一种面向非连接的协议，正式通信前不必与对方建立连接，不管对方状态就直接发送，UDP不控制对方是否接收到数据内容，是一种不可靠协议  
+- UDP协议适用于一次只传送少量数据、对可靠性要求不高的应用环境  
+- UDP协议直接位于IP协议之上，属于OSI参考模型的传输层协议（TCP协议也是传输层协议）
+- UDP面向非连接，没有建立连接过程，效率更高
+- 主要作用是完成网络数据流和数据报之间的转换———在信息发送端，UDP协议将网络数据流封装成数据报，将数据报发送出去；在接收端，UDP协议将数据报转换成实际数据内容
+
+> UDP 的 DatagramSocket作用是收发数据报。因此对于基于UDP的通信，没有所谓客户端和服务端的概念
+
+UDP/TCP对比：
+- TCP可靠，传输大小无限制，需要连接建立时间，差错控制开销大
+- UDP不可靠，差错控制开销小，传输大小限制在64KB下，不需要建立连接
+
+#### 17.4.2 使用DatagramSocket发送、接收数据
+DatagramSocket代表UDP协议的Socket，唯一作用是接收和发送数据报  
+DatagramPacket 代表数据报  
+通常在创建服务器时，创建指定端口的DatagramSocket实例，保证客户端可以将数据发送到该服务器。一旦得到DatagramSocket实例后，就可以收发数据：
+- receive(DatagramPacket p) 从该DatagramSocket接收数据报
+- send(DatagramPacket p)    以该DatagramSocket向外发送数据报
+
+DatagramSocket 并不知道将该数据报发送到哪里，而是由DatagramPacket 自身决定数据报目的地
+
+DatagramPakcet 构造器：
+- DatagramPacket(byte[] buf, int length, InetAddress addr, int port)
+
+>当Client/Server程序使用UDP协议时，实际上并没有明显的服务器端和客户端，因为两方都需要建立一个DatagramSocket对象，用来收发数据报，然后使用DatagramPacket对象作为传输数据的载体。通常固定IP地址、固定端口的DatagramSocket对象所在程序被成为服务器，该DatagramSocket可主动接收客户端数据
+
+````
+//创建一个接收数据的DatagramPacket对象
+DatagramPakcet packet = new DatagramPacket(buf, 256);
+//接收数据报,将会一直等待（会阻塞线程），直到收到第一个数据报
+socket.receive(packet);
+````
+````
+//创建一个接收数据的DatagramPacket对象
+DatagramPacket packet = new DatagramPacket(buf, length, address, port);
+//发送数据报
+socket.send(packet);
+````
+
+DatagramPacket 有3个方法获取发送者IP和端口:
+- InetAddress getAddress() 当程序准备发送此数据报时，返回目标主机IP；当刚接收到数据报时，返回发送主机IP
+- int getPort() 当程序准备发送此数据报时,返回目标主机端口；当刚接收到数据报时，返回发送主机端口
+- SocketAddress getSocketAddress()  当程序准备发送此数据报时，返回数据报的目标SocketAddress；当程序接收到一个数据报时，返回该数据报发送主机的SocketAddress
+> SocketAddress对象就是一个IP地址和端口号
+
+````
+public class UdpServer {
+    public static final int PORT = 30000;
+    //定义每个数据报最大4KB
+    private static final int DATA_LEN = 4096;
+    //定义接收网络数据字节数组
+    byte[] inBuff = new byte[DATA_LEN];
+    //以指定字节数组创建准备接收数据的DatagramPacket对象
+    private DatagramPacket inPacket = 
+        new DatagramPacket(inBuff, inBuff.length);
+    //定义一个用于发送的DatagramPacket对象
+    private DatagramPacket outPacket;
+    //定义一个字符串数组，服务端发送该数组的元素
+    String[] books = new String[] {
+        "疯狂Java讲义",
+        "轻量级Java EE",
+        "疯狂Andriod 讲义",
+        "疯狂Ajax讲义"
+    };
+
+    public void init() throws IOException {
+        try{
+            //创建DatagramSocket对象
+            DatagramSocket socket = new DatagramSocket(PORT);
+            for(ini i = 0; i < 1000; i++) {
+                socket.receive(inPacket);
+                //判断inPacket.getData()和inBuff是否同一个数组
+                System.out.println(inBuff == inPacket.getData());
+                将接收到的内容转换成字符串输出
+                System.out.println(new String(inBuff, 0, inPacket.getLength()));
+                //从字符串数组取一个元素作为发送数据
+                byte[] sendData = books[i % 4].getBytes();
+                //以指定字节数组作为发送数据，以刚收到的DatagramPacket
+                //的源SocketAddress作为目标SocketAddress创建DatagramPacket
+                outPacket = new DatagramPacket(
+                    sendData, sendData.length, inPacket.getSocketAddress());
+                //发送数据
+                socket.send(outPacket);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        new UdpServer().init();
+    }
+}
+````
+该程序可接收1000个客户端发来的数据  
+客户端采用循环不断读取用户键盘输入，将输入内容封装成DatagramPacket数据报，发送出去；接着把DatagramSocket中的数据读入接收用的DatagramPacket中
+````
+public class UdpClient {
+    //定义发送数据报目的地
+    public static final int DEST_PORT = 30000;
+    public static final String DEST_IP = "127.0.0.1";
+    //定义每个数据报大小为4KB
+    private static final int DATA_LEN = 4096;
+    //定义接收网络数据字节数组
+    byte[] inBuff = new byte[DATA_LEN];
+    //以指定字节数组创建准备接收数据的DatagramPacket对象
+    private DatagramPacket inPacket = 
+        new DatagramPacket(inBuff, inBuff.length);
+    //定义一个用于发送的DatagramPacket对象
+    private DatagramPacket outPacket = null;
+
+    public void init() throws IOException {
+        try{
+            //创建一个客户端DatagramSocket，使用随机端口
+            DatagramSocket socket = new DatagramSocket();
+            //初始化发送用的DatagramSocket，包含1个长度为0的字节数组
+            outPacket = new DatagramPacket(
+                new byte[0], 0, InetAddress.getByName(DEST_IP), DEST_PORT);
+            Scanner scan = new Scanner(System.in);
+            while(scan.hasNextLine()) {
+                bytep[] buff = scan.nextLine().getBytes();
+                outPacket.setDatat(buff);
+                socket.send(outPacket);
+                socket.receive(inPacket);
+                System.out.println(new String(inBuff, 0, inPacket.getLength()));
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException{
+        new UdpClient().init();
+    }
+}
+````
+
+客户端与服务器端的唯一区别在于：服务器端的IP地址、端口是固定的，所以客户端可以直接将数据报发送给服务器端，而服务器端需要从接收到的数据报中解析回包的目的地
+
+#### 17.4.3 使用MulticastSocket实现多点广播
+DatagramSocket只允许数据报发送到指定目标地址，而MulticastSocket可以将数据报以广播方式发送到多个客户端  
+若要使用多点广播，则需要让一个数据报标有一组目标主机地址，当数据报发出后，整个组的所有主机都能收到该数据报
+
+![](pic17_5.png)
+
+当MulticastSocket把一个DatagramPacket发送到多点广播IP地址时，该数据报被自动广播到加入该地址的所有MulticastSocket  
+MulticastSocket是DatagramSocket的一个子类  
+创建MulticastSocket对象后，还需要将该MulticastSocket加入到指定的多点广播地址,MulticastSocket使用joinGroup()方法加入指定组，leaveGroup()脱离一个组  
+使用MulticastSocket进行多点广播时所有通信实体都是平等的，都将自己的数据报发送到多点广播IP地址，并使用MulticastSocket接收其他人发送的广播数据报
+
+下面基于MulticastSocket实现一个广播多人聊天室，MulticastSocket既用于发送，也用于接收；一个线程负责接收用户键盘输入，并向MulticastSocket发送数据;另一个线程负责从MulticastSocket中读取数据
+````
+public class MulticastSocketTest implements Runnable {
+    //多点广播地址
+    private static final String BROADCAST_IP = "230.0.0.1";
+    //广播目的地端口
+    public static final int BROADCAST_PORT = 30000;
+    private static final int DATA_LEN = 4096;
+    //定义本程序的MulticastSocket实例
+    private MulticastSocket socket = null;
+    private InetAddress broadcastAddress = null;
+    private Scanner scan = null;
+    //定义接收网络数据字节数组
+    byte[] inBuff = new byte[DATA_LEN];
+    //以指定字节数组创建准备接收数据的DatagramPacket对象
+    private DatagramPacket inPacket = 
+        new DatagramPacket(inBuff, inBuff.length);
+    //定义一个用于发送的DatagramPacket对象
+    private DatagramPacket outPacket = null;
+
+    public void init() throws IOException {
+        try{
+            //创建键盘输入流
+            Scanner scan = new Scanner(System.in);
+            //创建用于收发数据的MulticastSocket对象
+            socket = new MulticastSocket(BROADCAST_PORT);
+            broadcastAddress = InetAddress.getByName(BROADCAST_IP);
+            //将socket加入指定多点广播地址
+            socket.joinGroup(broadcastAddress);
+            //设置发送的数据是否回环到自身
+            socket.setLoopbackMode(false);
+            //初始化发送用的DatagramPacket
+            outPacket = new DatagramPacket(
+                new byte[0], 0, broadcastAddress, BROADCAST_PORT);
+            //启动本实例run()方法作为执行体线程
+            new Thread(this).start();
+            //不断从键盘读入
+            while(scan.hasNextLine()) {
+                byte[] buff = scan.nextLine().getBytes();
+                outPacket.setData(buff);
+                //发送数据
+                socket.send(outPacket);
+            }
+        }finnally {
+            socket.close();
+        }
+    }
+
+    public void run() {
+        try{
+            while(true) {
+                //读取Socket中的数据
+                socket.receive(inPacket);
+                //打印输出从socket中读取的内容
+                System.out.println("聊天信息:" + 
+                    new String(inBuff, 0, inPacket.getLength()));
+            }
+        }catch(IOException e) {
+            e.printStackTrace();
+            try{
+                if(sokcet != null) {
+                    //让该Socket离开多点IP广播地址
+                    socket.leaveGroup(broadcastAddress);
+                    //关闭Socket对象
+                    socket.close();
+                }
+                System.exit(1);
+            }catch(IOException e) {
+                e.printStackTrace();
+            }
+            
+        }
+    }
+
+    public static void main(String[] args) throws IOException{
+        new MulticastSocketTest().init();
+    }
+ }
+````
+
+### 17.5 使用代理服务器
+java.net包下有Proxy和ProxySelector两个类，Proxy代表一个代理服务器，可打开URLConnection连接时指定Proxy,创建Socket连接时也可以指定Proxy;而ProxySelector代表一个代理选择器。提供了对代理服务器更灵活的控制，可以对HTTP、HTTPS、FTP、SOCKS等进行分别设置，还可设置不需要通过代理服务器的主机和地址
+
+>代理服务器功能：代理用户去取得网络信息，是介于浏览器和服务器之间的一台服务器。设置了代理服务器后，浏览器不直接向Web服务器发送请求，而是向代理服务器发送请求，由代理服务器向真正的Web服务器发送请求，并取回浏览器返回信息，再送回给浏览器
+> - 突破IP限制，对外隐藏自身IP地址，访问受限国外站点等
+> - 提高访问速度，代理服务器提供的缓冲功能可避免每个用户直接访问远程主机
+
+#### 17.5.1 直接使用Proxy创建连接
+Proxy构造器：
+Proxy(Proxy.Type type, SocketAddress sa)    sa指代理服务器地址，type指代理服务器类型，包括：
+- Proxy.Type.DIRECT 表示直接连接，不使用代理
+- Proxy.Type.HTTP   表示支持高级协议代理（HTTP、FTP）
+- PRoxy.Type.SOCKS  表示SOCKS（v4/v5）代理
+
+创建Proxy对象后，程序使用URLConnection打开连接时，或创建Socket连接时传入一个Proxy对象，作为本次连接所使用的代理服务器
+````
+public class ProxyTest {
+    //代理服务器地址和端口
+    final String Proxy_ADDR = "129.82.12.188";
+    final int PROXY_PORT = 3124;
+    //定义需要访问的网址
+    String urlStr = "http://www.crazyit.org";
+    
+    public void init() throws IOException, MalformedURLExcpetion{
+        URL url = new URL(urlStr);
+        //创建一个代理服务器对象
+        Proxy proxy = new Proxy(
+            Proxy.Type.HTTP, new InetSocketAddress(PROXY_ADDR, PROXY_PORT));
+        //使用指定代理服务器打开连接
+        URLConnection conn = url.openConnection(proxy);
+        //设置超时
+        conn.setConnecTimeout(3000);
+        try{
+            //通过代理服务器读取数据Scanner
+            Scanner scan = new Sacnner(conn.getInputStream());
+            PrintStream ps = new PrintStream("index.html");
+            while(scan.hasNextLine()) {
+                String line = scan.nextLine();
+                //控制台输出网页资源内容
+                System.out.print(line);
+                //将网页资源内容输出到指定输出流
+                ps.println(line);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException{
+        new ProxyTest().init();
+    }
+}
+````
+#### 17.5.2 使用ProxySelector 自动选择代理服务器
+如果希望每次打开连接时总是具有默认的代理服务器，则可借助ProxySelector实现  
+ProxySelector代表一个代理选择器，本身是一个抽象类，程序无法创建它的实例，可继承它自己实现。实现这个类只需要定义一个继承ProxySelector的类，并实现2个抽象方法：
+- List<Proxy> select(URI uri)   根据业务需要返回代理服务器列表
+- connectFailed(URI uri, SocketAddress sa, IOException ioe) 连接代理服务器失败时的回掉方法
+
 
 
 ## 18 类加载机制与反射
+### 18.1 类的加载、连接和初始化
+同一个JVM的所有线程、所有变量都处在同一个进程里，都使用该JVM进程的内存区
+> 两次运行Java程序处于两个不同的JVM进程中，两个JVM之间不会共享数据
+
+#### 18.1.2 类的加载
+程序主动使用某个类时，如果该类未被加载到内存，则**步骤**：加载->连接->初始化  
+JVM会连续完成这3步  
+**类的加载**：将类的class文件读入内存，并为之创建一个java.lang.Class对象
+> 当程序使用任何类时，都为之建立一个java.lang.Class对象
+
+加载类的来源：
+- 本地文件系统加载class文件
+- 从JAR包加载class文件
+- 通过网络加载class文件
+- 把一个java源文件动态编译，并执行加载
+
+#### 18.1.3 类的连接
+负责把类的二进制数据合并到JRE中  
+分为3个阶段：
+1. 验证：检验被加载类是否有正确结构
+2. 准备：为类的静态Field分配内存，并设置默认初始值
+3. 解析：将类的二进制数据中的符号引用替换成直接引用
+
+#### 18.1.4 类的初始化
+虚拟机对类进行初始化主要是对静态Field进行初始化  
+两种方式：
+1. 声明静态Field时指定初始值
+2. 使用静态初始化块
+
+JVM初始化一个类的步骤:
+1. 加入这个类还没有被加载和连接，则先加载并连接该类
+2. 若该类的直接父类还没有被初始化，则先初始化其直接父类
+3. 假如有初始化语句，则系统依次执行这些语句
+
+#### 18.1.5 类初始化的时机
+当Java程序首次用下面6个方式来使用某个类或接口时，系统会初始化该类或接口
+- 创建类的实例（包括：使用new操作符来创建实例、通过反射来创建实例、通过序列化来创建实例）
+- 调用某个类的静态方法
+- 访问某个类或接口的静态Field，或为该静态Field赋值
+- 使用反射方式来强制创建某个类或接口对应的java.lang.Class 对象
+- 初始化某个类的子类，该子类所有父类都会被初始化
+- 直接使用java.exe命令来运行某个主类，会先初始化该主类
+
+对于final型静态field，如果field值在编译时就可确定下来，则这个field相当于宏变量。Java编译器会在编译时直接把这个Field出现的地方替换成它的值，因此不会导致该类的初始化。  
+如果final型field值不能在编译时确定，则必须等到运行时才能确定，如果通过该类访问它的field，则会初始化  
+
+### 18.2 类加载器
+负责将.class文件加载到内存中，并为之生成对应java.lang.Class对象  
+#### 18.2.1 类加载器介绍
+在Java中，一个类用其全限定类名作为标识；  
+在JVM中，一个类用其全限定类名和其类加载器作为其唯一标识  
+
+在JVM启动时，会形成由3个类加载器组成的初始类加载器层次结构  
+- Bootstrap ClassLoader:根类加载器，负责加载java核心类
+- Extension ClassLoader:扩展类加载器，负责加载JRE扩展目录中的JAR包的类
+- System ClassLoader:系统类加载器，负责在JVM启动时加载来自java 命令的 classpath 选项、java.class.path系统属性，或CLASSPATH环境变量所指定的JAR包和类路径
+
+#### 18.2.2 类加载机制
+- 全盘负责。当一个类加载器负责加载某个Class时，该Class所依赖的和引用的其他Class也将由该类加载器负责载入
+- 父类委托。让父类加载器试图加载Class，无法加载时才尝试从自己的类路径中加载该类
+- 缓存机制。保证所有加载过的Class都缓存，当程序需要某个Class时，类加载器先从缓存中搜寻该Class，只有当缓存中不存在时，系统才读取该类对应的二进制数据，并将其转换成Class对象
+
+> 类加载器之间的父子关系斌不是类继承上的父子关系，是指类加载器实例之间的关系
+
+除了使用Java提供的类加载器外，开发者还可以实现自己的类加载器
+
+![](pic18_1.png)
+
+系统类加载器是AppClassLoader的实例，扩展类加载器是ExtClassLoader的实例，这两个类都是URLClassLoader类的实例  
+类加载器加载Class大致要经过8个步骤：
+1. 检测此Class是否载入过（即缓存区中是否存在此Class），如果有则跳到第8步，否则执行第2步
+2. 如果父类加载器不存在，跳到第4步；否则执行第3步
+3. 请求使用父类加载器去载入目标类，成功则跳到第8步，否则执行第5步
+4. 请求使用根类加载器来载入目标类，成功则跳到第8步，否则跳到第7步
+5. 当前类加载器尝试寻找Class文件，如果找到则执行第6步，否则跳到第7步
+6. 从文件中载入Class，成功载入后跳到第8步
+7. 抛出ClassNotFoundException异常
+8. 返回对应的java.lang.Class对象
+
+#### 18.2.3 创建自定义类加载器
+JVM 中除根类加载器外所有类加载器都是ClassLoader子类的实例，可通过扩展ClassLoader子类，并重写该ClassLoader所包含的方法来实现自定义类加载器  
+ClassLoader类有2个关键方法：
+- loadClass(String name, boolean resolve): 该方法为ClassLoader的入口点，根据指定二进制名称来加载类
+- findClass(String name):根据二进制名称来查找类
+
+推荐重写findClass()方法，因为loadClass()方法执行步骤如下：
+1. 用findLoadedClass(String)来检查是否已加载类，如果已加载则直接返回
+2. 在父类加载器上调用loadClass()方法。如果父类加载器为null，则使用根类加载器来加载
+3. 调用findClass(String) 方法查找类
+
+所以重写loadClass()实现逻辑更复杂；重写findClass()可避免覆盖默认类加载器的父类委托、缓冲机制
+
+#### 18.2.4 URLClassLoader 类
+该类是系统类加载器和扩展类加载器的父类，既可从本地文件系统获得二进制文件来加载类，也可以从远程主机获取二进制文件来加载类  
+一旦得到了URLClassLoader对象后，就可以调用该对象的loadClass()方法来加载指定类
+
+### 18.3 通过反射查看类信息
+Java程序运行时会出现编译时类型和运行时类型
+````
+Person p = new Student();
+````
+编译时无法预知该对象和类可能属于哪些类，只能靠运行时信息来发现，这必须使用反射
+
+#### 18.3.1 获得 Class 对象
+获得Class对象通常有如下3种方式：
+- 使用Class类的forName(String className):需要传入某个类的全限定类名
+- 调用某个类的class属性
+- 调用某对象的getClass()方法
+
+其中第二种方式代码更安全、程序性能好
+
+#### 18.3.2 从 Class 中获取信息
+Class类提供了大量的实例方法来获取该Class对象所对应类的详细信息：
+- getConstructor 获取构造器
+- getMethod 获取方法
+- getField 获取Field
+- getAnnotaion 获取注释
+- getDeclaredClasses 获取全部内部类
+- getDeclaringClasses 访问外部类
+- getInterface 访问所继承的父类、实现的接口
+- getSuperclass 访问父类
+- getModifiers 获取修饰符
+- getPackage 获取包名
+- getName 返回类名
+- 还可以调用几个判断方法来判断该类是否为接口、枚举、注释类型等
+
+### 18.4 使用反射生成并操作对象
+Class 对象可以获得该类里的方法、构造器、Field，这3个类都位于java.lang.reflect包下，并实现了 java.lang.reflect.Member 接口  
+程序可通过 Method 对象来执行对应的方法，通过Constructor对象来调用对应的构造器创建实例，通过Field对象访问并修改对象的属性值  
+#### 18.4.1 创建对象
+- 使用Class对象的newInstance()方法来创建该Class对象对应的实例，要求该对应类有默认构造器，使用默认构造器创建
+- 先使用Class对象指定1的Constructor对象，再调用Constructor对象的newInstance()方法来创建该Class对象对应类的实例，可选择使用指定构造器创建
+
+````
+public class ObjectPoolFactory {
+    // 定义一个对象池，前面是对象名，后面是实际对象
+    private Map<String, Object> objctPool = new HashMap<>();
+    // 定义一个创建对象的方法
+    // 该方法需要传入一个字符串类名，程序可根据类名生成对象
+    private Object creatObject(String clazzName) 
+        throws InstantiationException, IllegalAccessException, ClassNotFoundException{
+        //根据字符串来获取对应Class对象
+        Class<?> clazz = Class.forName(clazzName);
+        //使用clazz对应类的默认构造器创建实例
+        return clazz.newInstance();
+    }
+    //该方法根据指定文件来初始化对象池
+    //根据配置文件来创建对象
+    public void initPool(String fileName) 
+    throws InstantiationException, ClassNotFoundException{
+        try{
+            FileInputStream fis = new FileInputStream(fileName);
+            Properties props = new Properties();
+            props.load(fis);
+            for(String name : propsstringPropertyNames()) {
+                //每取出一对key-value对，就根据value创建一个对象
+                //调用createObject()创建对象，并添加到对象池
+                objectPool.put(name, createObject(props.getProperty(name)));
+            }
+        }catch(IOException ex) {
+            System.out.pritnln("读取" + fileName + "异常");
+        }
+    }
+    public Object getObject(String name) {
+        //从池中取出指定name的对象
+        return objectPool.get(name);
+    }
+    public static void main(String[] args) throws Excpetion{
+        ObjectPoolFactory pf = new ObjectPoolFactory();
+        pf.initPool("obj.txt");
+        System.out.println(pf.getObject("a"));
+        System.out.println(pf.getObject("b"));
+    }
+}
+````
+
+为利用指定构造器来创建Java对象，需要如下3个步骤：
+1. 获取该类的Class对象
+2. 利用Class对象的 getConstructor()方法来获取指定的构造器
+3. 调用Constructor的 newInstance()方法来创建Java对象
+````
+public class CreateJFrame {
+    public static void main(String[] args) throws Exception{
+        Class<?> jframeClazz = Class.forName("javax.swing.JFrame");
+        Constructor ctor = jframeClazz.getConstructor(String.class);
+        Object obj = ctor.newInstance("测试窗口");
+        System.out.println(obj);
+    }
+}
+````
+通常没有必要使用反射来创建对象，只有当程序需要动态创建某个类对象时才考虑反射
+
+#### 18.4.2 调用方法
+获得某个Class对象后，可通过该Class对象的getMethods()/getMethod()方法来获取全部/指定方法
+
+#### 18.4.3 访问属性值
+通过Class对象的getFields()/getField()方法可获取该类所包括的全部/指定Field
+
+#### 18.4.4 操作数组
+java.lang.reflext 包下还提供一个Array类，Array对象可代表所有数组，可通过使用Array来动态创建数组、操作元素  
+
+### 18.5 使用反射生成JDK动态代理
+
+### 18.6 反射和泛型
+在反射中使用泛型，可避免使用反射生成的对象需要强制类型转换
+
+#### 18.6.1 泛型和Class类
+使用 Class&lt;T> 泛型可避免强制转换
+````
+public class YeekuObjectFactory{
+    public static <T> T getInstance(Class<T> cls) {
+        try{
+            //返回该Class对象创建的实例
+            return cls.newInstance();
+        }catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    public static void main(String[] args) {
+        //获取实例后无须类型转换
+        Data d = YeekuObjectFactory.getInstance(Date.class);
+        JFrame f = YeekuObjectFactory2.getInstance(JFrame.class);
+    }
+}
+````
+#### 18.6.2 使用反射来获取泛型信息
+````
+//获取Field对象f的类型
+Class<?> a = f.getType();
+````
+这种方式只对普通Field有效，如Field是有泛型类型的类型，如Map<String, Integer>，则不能得到该Field泛型参数  
+为获得指定Field泛型类型，应先使用：
+````
+Type gType = f.getGenericType();
+````
+然后将Type 对象强制转换为ParameterizedType 对象，代表被参数化的类型，增加了泛型限制类型， ParameterizedType提供2个方法：
+- getRawType()  返回没有泛型信息的原始类型
+- getActualTypeArguments()  返回泛型参数的类型
