@@ -392,7 +392,47 @@ instanceof 作用：在进行强制类型转换之前，先判断前一个对象
 初始化块只在创建 Java 对象时隐式执行，而且在执行构造器之前执行<br>
 初始化块是构造器的补充<br>
 使用 static 修饰的初始化块是类初始化块
+````
+class Father {
+    static{
+        System.out.println("父类静态初始化块");
+    }
+    {
+        System.out.println("父类普通初始化块");
+    }
+    public Father() {
+        System.out.println("父类构造器");
+    }
+}
 
+class Son extends Father {
+    static{
+        System.out.println("子类静态初始化块");
+    }
+    {
+        System.out.println("子类普通初始化块");
+    }
+    public Son() {
+        super();
+        System.out.println("子类构造器");
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        new Son();
+    }
+}
+/**
+* 输出顺序：
+* 父类静态初始化块
+* 子类静态初始化块
+* 父类普通初始化块
+* 父类构造器
+* 子类普通初始化块
+* 子类构造器
+*/
+````
 ### 6.12 包装类
 基本数据类型 -> 包装类<br>
 
@@ -422,7 +462,7 @@ toString() 方法返回该对象实现类的 "类名 + @ + hashCode"<br>
 - 一致性：对任意 x 和 y, 如果对象中用于等价比较的信息没有改变，那么返回结果保持一致
 
 ### 6.14 类成员
-单例类： 一个类时钟只能创建一个实例<br>
+单例类： 一个类始终只能创建一个实例<br>
 - 把该类构造器使用 private 修饰<br>
 - 一旦隐藏构造器，就需要提供一个 public 方法作为该类的访问点，用于创建类的对象，且该方法必须是 static 修饰<br>
 - 该类还必须缓存已创建的对象
@@ -446,7 +486,7 @@ class Singleton {
 
 final 关键字修饰的类、方法和变量不可改变<br>
 final Field
-- 类 Field：必须在镜头初始化过程中或声明该 Field 时指定初始值
+- 类 Field：必须在静态初始化过程中或声明该 Field 时指定初始值
 - 实例 Field：必须在非静态初始化块、声明该 Field 或构造器中指定初始值
 - final 成员变量必须显式初始化
 - final 修饰局部变量可在定义时不指定默认值
@@ -483,7 +523,7 @@ public abstract void test(); //抽象方法(记得带分号)
 public void test() {} //是普通方法
 </code></pre>
 
-- abstract 类只能被集成
+- abstract 类只能被继承
 - abstract 方法只能被重写
 - final 和 abstract 永远不能同时使用
 - static 和 abstract 不能同时修饰某个方法
@@ -555,8 +595,11 @@ new 父类构造器(实参列表)|实现接口() {
 </code></pre>
 
 匿名内部类规则：
+- 必须继承一个父类或实现一个接口
 - 不能是抽象类
 - 不能定义构造器，因为没有类名
+
+> 当通过实现接口来创建匿名内部类时，匿名内部类不能显示创建构造器，因此匿名内部类只有一个隐式的无参构造器，故new 接口名后的括号里不能传入参数值
 
 #### 闭包和回调
 闭包：一种被调用的对象，保存了创建它的作用域信息<br>
@@ -638,6 +681,8 @@ java.lang.Enum 包含的方法
 - 可达状态：对象被创建后，有一个以上引用
 - 可恢复状态：某个对象不再有任何引用变量引用它
 - 不可达状态：对象与所有引用变量的关联被切断，且系统调用finalize()方法后依然没有使该对象变成可达状态
+
+![](pic6_3.png)
 
 #### 强制垃圾回收
 - System.gc()
@@ -741,7 +786,7 @@ Matcher 类的 find() 和 group()方法可从目标字符串中依次取出特�
 ## 8. Java 集合
 ### 8.1 集合概述
 所有集合类都位于 java.util 包下<br>
-集合李只能保存对象（引用）而不能保存基本数据类型<br>
+集合里只能保存对象（引用）而不能保存基本数据类型<br>
 主要由两个接口派生出来：Collection 和 Map<br>
 ![](pic8_1.png)
 
@@ -1121,7 +1166,7 @@ Checked异常的处理方式：
 #### throws 声明抛出异常
 throws 只能在方法签名中使用，throws可抛出多种异常类，一旦使用throws抛出异常，就无需使用try...catch来捕获异常了
 
-> 子类方法声明抛出的异常类型影视父类方法声明抛出的异常类型的子类或相同  
+> 子类方法声明抛出的异常类型应是父类方法声明抛出的异常类型的子类或相同  
 > 子类方法抛出的异常不允许比父类方法声明抛出的异常多
 
 当使用Runtime异常时，程序无需在方法中声明抛出 Checked异常，一旦发生自定义错误，程序只管抛出Runtime异常即可  
@@ -1576,7 +1621,7 @@ stream 是从源到接收的有序数据
 #### 流的概念模型
 Java 的 40多个类都是从如下4个抽象基类派生的:
 - InputStream/Reader:所有输入流的基类，前者是字节输入流，后者是字符输入流
-- OutputStream/Reader:所有输出流的基类，前者是字节输出流，后者是字符输出流
+- OutputStream/Writer:所有输出流的基类，前者是字节输出流，后者是字符输出流
 
 字节流和字符流的处理方式相似，处理的单位不同而已  
 输入流使用隐式的记录指针来表示当前正准备从何处开始读取，每当程序从 InputStream 或 Reader 里读取一个或多个单位后，记录指针自动向后移动
@@ -1698,7 +1743,7 @@ RandomAccessFile 即可读文件，也可以写，包含一系列readXxx()和wri
 > Radom 可以理解为“任意”，而不是“随机”  
 > RadomAccessFile 依然不能向文件指定位置插入内容，如果直接将指针移动到中间某位置并开始输出，新输出会覆盖文件中原有内容。如果需要向指定位置插入内容，程序需要先把插入点后面的内容读入缓冲区，等把需要插入的数据写入文件后，再将缓冲区内容追加到文件后面
 
-> 多线程断点的网络下载工具恶口通过RandomAccessFile来实现，所有的下载工具在下载开始时会创建2个文件：一个与被下载文件大小相同的空文件，一个是记录文件指针的位置文件，下载工具用多条线程启动输入流来读取网络数据，使用RandomAccessFile将从网络上读取的数据写入前面建立的空文件中，每写一些数据，记录文件指针分别记下每个RandomAccessFile当前的文件指针文职，网络端口后，再次开始下载，每个RandomAccessFile都根据记录文件指针的文件中记录的位置继续向下些数据。
+> 多线程断点的网络下载工具可通过RandomAccessFile来实现，所有的下载工具在下载开始时会创建2个文件：一个与被下载文件大小相同的空文件，一个是记录文件指针的位置文件，下载工具用多条线程启动输入流来读取网络数据，使用RandomAccessFile将从网络上读取的数据写入前面建立的空文件中，每写一些数据，记录文件指针分别记下每个RandomAccessFile当前的文件指针文职，网络端口后，再次开始下载，每个RandomAccessFile都根据记录文件指针的文件中记录的位置继续向下些数据。
 
 ### 15.8 对象序列化
 对象序列化的**目标**：将对象保存到磁盘中，或允许在网络中直接传输对象  
@@ -1742,7 +1787,7 @@ Person p = (Person) ois.readObject();
 
 Java 序列化机制采用了一种特殊的序列化算法：
 - 所有保存到磁盘中的对象都有一个序列化编号
-- 当程序试图序列化一个对象时，程序先检查该对象是否已被序列化过，只有该对象从未（在本虚拟机）被序列化过，系统才会将该对象转换车号给你字节序列并输出
+- 当程序试图序列化一个对象时，程序先检查该对象是否已被序列化过，只有该对象从未（在本虚拟机）被序列化过，系统才会将该对象转换成字节序列并输出
 - 如果某个对象已序列化过，程序只直接输出一个序列化编号，而不是再次重新序列化该对象
 
 当程序序列化一个可变对象时，只有第一次使用 writeObject()方法输出时才会将该对象转换成字节序列并输出，再次调用 writeObject()方法时，程序只输出前面的序列化编号，即使后面对象的Field值已改变，改变的Field值也不会输出
@@ -2217,7 +2262,8 @@ public class JoinThread extends Thread{
             if(i == 20) {
                 JoinThread jt = new JoinThread("被Join的线程");
                 jt.start();
-                //必须等jt执行结束才会向下执行
+                //main线程调用了jt线程的join()方法，
+                //main线程必须等jt执行结束才会向下执行
                 jt.join();
             }
             System.out.println(Thread.currentThread().getName() + " " + i);
@@ -2278,6 +2324,8 @@ public class YieldTest extends Thread{
 
 ### 16.5 线程同步
 当有两个线程并发修改同一个对象时可能会造成异常  
+
+#### 16.5.1 同步代码块
 引入同步监视器（同步代码块）
 ````
 synchronized(obj) {
@@ -2329,7 +2377,42 @@ public class DrawThread extends Thread {
 > synchronized 关键字可修饰方法、代码块，但不能修饰构造器、属性
 ````
 public synchronized void draw(double drawAmount) {
-    //
+    //同步代码块
+}
+````
+
+````
+public class Account {
+    private String accountNo;
+    private double balance;
+    public Account() {
+
+    }
+    public Account(String accountNo, double balance) {
+        this.accountNo = accountNo;
+        this.balance = balance;
+    }
+    //省略getter和setter
+    public double getBalance() {
+        return this.balance;
+    }
+    //提供一个线程安全的draw()方法来完成取钱操作
+    public synchronized void draw(double drawAmount) {
+        if(balance >= drawAmount) {
+            System.out.println(Thread.cuurentThread().getName() + "取钱成功！吐出钞票：" + drawAmount);
+            try{
+                Thread.sleep();
+            }catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+            //修改余额
+            balance -= drawAmount;
+            System.out.println("\t余额为：" + balance);
+        }else {
+            System.out.println(Thread.currentThread().getName() + "取钱失败！余额不足！");
+        }
+        //省略hashCode()和equals()
+    }
 }
 ````
 可变类的线程安全是以降低程序的运行效率作为代价的  
@@ -2409,7 +2492,32 @@ ThreadGroup 中有一个 void uncaughtException(Thread t, Throwable e)， 该方
 ### 16.8 线程池
 线程池在系统启动时即创建大量空闲线程，程序将一个Runnable/Callable对象传给线程池，会启动一个线程来执行它们的run()或call()方法，当方法执行完，线程不死亡，而是再次返回线程池成为空闲状态，等待下一个Runnable对象的run()方法
 
-使用线程池来执行线程任务的步骤：
+Java 5中引入 Executors工厂类来产生线程池，该工厂类包含几个静态工厂方法来创建线程池：
+- newCachedThreadPool():创建一个具有**缓存功能**的线程池，系统根据需要创建线程，这些线程会被缓存在线程池中；
+- newFixedThreadPool(int nThreads):创建一个**可重用的、具有固定线程数**的线程池；
+- newSingleThreadExecutor():创建一个只有**单线程**的线程池
+- newScheduledThreadPool(int corePoolSize):创建具有指定线程数的线程池，可以在指定延迟后执行线程任务
+- newSingleThreadScheduledExecutor():创建只有一个线程的线程池，可在指定延迟后执行线程任务
+
+以上5个方法中，前3个方法返回一个ExecutorService对象，代表一个线程池，可执行Runnable对象或Callable对象所代表的线程；  
+后2个方法返回一个ScheduledExecutorService线程池，是ExecutorService的子类  
+
+ExecutorService代表尽快执行的线程池（只要线程池有空闲线程，就立即执行线程任务），程序只要将一个Callable对象或Runnable对象提交给该线程池，该线程池就会尽快执行该任务
+- Future<?> submit(Runnable task):将一个Runnable对象提交给指定线程池，线程池将在有空闲线程时执行Runnable对象代表的任务
+- <T>Future<T> submit(Runnable task, T result):将一个Runnable对象提交给指定的线程池，result显示指定线程执行结束后的返回值
+- <T>Future<T> submit(Callable<T> task):将一个Callable对象提交给指定线程池，线程池将在有空闲线程时执行任务；Future代表Callable对象里call()方法的返回值
+
+ScheduledExecutorService代表可在指定延迟后或周期性执行线程任务的线程池，提供4个方法：
+- ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit)
+- ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit)
+- ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit)
+- ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long period, TimeUnit unit)
+
+当用完一个线程池后，应调用线程池的shutdown()方法，将启动线程池的关闭序列，调用shutdown()后线程池不再接收新任务，但会将以前所有已提交任务执行完成；  
+当任务都执行完后，线程池所有线程死亡；  
+
+
+使用**线程池**来执行线程任务的**步骤**：
 1. 调用Executors类的静态工厂方法创建一个ExecutorService 对象，代表一个线程池
 2. 创建Runnable/Callable实现类，作为线程执行任务
 3. 调用ExecutorService对象的submit()方法提交Runanble/Callable实例
@@ -2418,7 +2526,9 @@ ThreadGroup 中有一个 void uncaughtException(Thread t, Throwable e)， 该方
 ````
 class MyThread implements Runnable {
     public void run() {
-
+        for(int i = 0; i < 100; i++) {
+            System.out.println(Thread.currentThread().getName()+"的i值为:" + i);
+        }
     }
 }
 public class ThreadPoolTest{
